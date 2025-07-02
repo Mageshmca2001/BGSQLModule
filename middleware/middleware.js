@@ -4,26 +4,26 @@ import jwt from 'jsonwebtoken';
 
 export const verifyToken = (req, res, next) => {
 
-    const token = req.cookies.token;  // Assuming you're storing the token in cookies
+const token = req.cookies.token;  // Assuming you're storing the token in cookies
 
-    if (!token) {
+if (!token) {
 
-        return res.status(401).json({ message: 'No token, authorization denied' });
-    }
+return res.status(401).json({ message: 'No token, authorization denied' });
+}
 
-    try {
+try {
 
-        // Verify token
+// Verify token
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        req.user = decoded; // Attach the decoded user to the request object
+req.user = decoded; // Attach the decoded user to the request object
 
-        next(); // Proceed to the next route handler
+next(); // Proceed to the next route handler
 
-    } catch (error) {
+} catch (error) {
 
-        return res.status(401).json({ message: 'Token is not valid or expired' });
-    }
+return res.status(401).json({ message: 'Token is not valid or expired' });
+}
 };
 
