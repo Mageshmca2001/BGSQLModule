@@ -8,7 +8,7 @@ authRouter.post('/register', auth.register);
 authRouter.post('/login',auth.login);
 // Login route
 authRouter.get('/protected', verifyToken, (req, res) => {
-res.status(200).json({ message: 'Access granted', user: req.user });
+res.status(200).json({ message: 'Access granted', admin: req.user });
 });
 
 

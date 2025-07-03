@@ -4,13 +4,14 @@ import cors from "cors";
 import connectDB from './Database/Database.js';
 import authRouter from "./Routers/authroutes.js"; 
 import UserRouter from "./Routers/Userroutes.js";
-
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.use(cors({
   credentials: true,
