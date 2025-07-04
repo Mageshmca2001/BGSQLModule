@@ -115,16 +115,40 @@ return result.recordset[0];
 export const verifyUserPassword1 = (user, plainPassword) => {
 return user.password === plainPassword;
 };
-export const fetchAllUsersall = async () => {
+export const FunctionalSerialNumber = async () => {
 const pool = await poolPromise;
 const result = await pool
 .request()
-.query(`
-SELECT * FROM data; 
-SELECT * FROM criticalParameters;
-SELECT * FROM finalParameters;
-SELECT * FROM Calibration;
-`);
+.query('SELECT * FROM finalparameters');
 
-return result.recordsets; // Array: [data, criticalParameters, finalParameters, Calibration]
+
+return result.recordset; // Return all records
+};
+export const CalibrationSerialNumber = async () => {
+const pool = await poolPromise;
+const result = await pool
+.request()
+.query('SELECT * FROM Calibration');
+
+AccuracySerialNumber
+return result.recordset; // Return all records
+};
+
+export const AccuracySerialNumber = async () => {
+const pool = await poolPromise;
+const result = await pool
+.request()
+.query('SELECT * FROM AccuracyTest');
+
+
+return result.recordset; // Return all records
+};
+export const NICSerialNumber = async () => {
+const pool = await poolPromise;
+const result = await pool
+.request()
+.query('SELECT * FROM NICComTest');
+
+
+return result.recordset; // Return all records
 };

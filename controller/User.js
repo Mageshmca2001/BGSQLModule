@@ -1,5 +1,5 @@
 
-import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,fetchAllUsersall} from '../Models/User.js'
+import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber} from '../Models/User.js'
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 
@@ -130,23 +130,55 @@ export const login = async (req, res) => {
     res.status(500).json({ message: "Error logging in", error: error.message });
   }
 };
-export const getall = async (req, res) => {
+export const FunctionalSerialNumberget = async (req, res) => {
 try {
-const users = await fetchAllUsersall(); // users is an array of 4 recordsets
+const users = await FunctionalSerialNumber(); // users is an array of 4 recordsets
 
-const [data, criticalParameters, finalParameters, calibration] = users;
 
-res.status(200).json({
-data,
-criticalParameters,
-finalParameters,
-calibration
+res.status(200).json({ users
 });
 } catch (err) {
 console.error("Get users error:", err);
 res.status(500).json({ message: 'Error retrieving users', error: err.message });
 }
 };
-const users = {addusers, getusers , putusers, deleteusers, login, getall}; 
+export const CalibrationSerialNumberget = async (req, res) => {
+try {
+const users = await CalibrationSerialNumber(); // users is an array of 4 recordsets
+
+
+res.status(200).json({ users
+});
+} catch (err) {
+console.error("Get users error:", err);
+res.status(500).json({ message: 'Error retrieving users', error: err.message });
+}
+};
+export const AccuracySerialNumberget = async (req, res) => {
+try {
+const users = await AccuracySerialNumber(); // users is an array of 4 recordsets
+
+
+res.status(200).json({ users
+});
+} catch (err) {
+console.error("Get users error:", err);
+res.status(500).json({ message: 'Error retrieving users', error: err.message });
+}
+};
+
+export const NICSerialNumberget = async (req, res) => {
+try {
+const users = await NICSerialNumber(); // users is an array of 4 recordsets
+
+
+res.status(200).json({ users
+});
+} catch (err) {
+console.error("Get users error:", err);
+res.status(500).json({ message: 'Error retrieving users', error: err.message });
+}
+};
+const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget}; 
 
 export default users;

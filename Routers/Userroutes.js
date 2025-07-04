@@ -8,7 +8,13 @@ userRouter.get('/getusers', users.getusers);
 userRouter.put('/putusers', users.putusers);
 userRouter.delete('/deleteusers/:id', users.deleteusers);
 userRouter.post('/login', users.login);
-userRouter.get('/parameters', users.getall);
+
+// {*/parameter*/}
+
+userRouter.get('/Functional',users.FunctionalSerialNumberget);
+userRouter.get('/Calibration', users.CalibrationSerialNumberget);
+userRouter.get('/Accuracy',users.AccuracySerialNumberget);
+userRouter.get('/NIC',users.NICSerialNumberget)
 
 userRouter.get('/protected', verifyToken, (req, res) => {
 res.status(200).json({ message: 'Access granted', user: req.user });
