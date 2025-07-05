@@ -36,9 +36,6 @@ OUTPUT inserted.id, inserted.username, inserted.email, inserted.role, inserted.t
 VALUES (@id, @username, @email, @password, @role)
 `);
 
-
-
-
 return insertResult.recordset[0];
 };
 export const insertUser = async ({ id, username, password, role, status }) => {
@@ -77,7 +74,7 @@ password = @password,
 role = @role,
 status = @status
 OUTPUT inserted.id, inserted.username, inserted.role, inserted.status, inserted.timestamp
-WHERE username = @username
+WHERE id = @id
 `);
 
 return result.recordset[0];
@@ -175,7 +172,9 @@ VALUES (@id, @TestJigNumber, @JigDescription, @JigStatus)
 return result.recordset[0];
 };
 export const UpdateTest = async ({ id, TestJigNumber, JigDescription, JigStatus }) => {
+try {
 const pool = await poolPromise;
+
 const result = await pool
 .request()
 .input('id', sql.UniqueIdentifier, id)
@@ -184,13 +183,23 @@ const result = await pool
 .input('JigStatus', sql.VarChar, JigStatus)
 .query(`
 UPDATE TestJigDetails
-SET TestJigNumber = @TestJigNumber,
+SET 
+TestJigNumber = @TestJigNumber,
 JigDescription = @JigDescription,
 JigStatus = @JigStatus
-OUTPUT inserted.id, inserted.TestJigNumber, inserted.JigDescription, inserted.JigStatus
-WHERE TestJigNumber = @TestJigNumber
+OUTPUT 
+inserted.id, 
+inserted.TestJigNumber, 
+inserted.JigDescription, 
+inserted.JigStatus
+WHERE id = @id
 `);
+
 return result.recordset[0];
+} catch (error) {
+console.error('Error updating TestJig:', error);
+throw new Error('Failed to update TestJig');
+}
 };
 export const deleteTest = async (id) => {
 const pool = await poolPromise;
