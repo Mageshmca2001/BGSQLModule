@@ -133,7 +133,6 @@ const result = await pool
 AccuracySerialNumber
 return result.recordset; // Return all records
 };
-
 export const AccuracySerialNumber = async () => {
 const pool = await poolPromise;
 const result = await pool
@@ -151,4 +150,57 @@ const result = await pool
 
 
 return result.recordset; // Return all records
+};
+export const fetchTest = async () => {
+const pool = await poolPromise;
+const result = await pool
+.request()
+.query('SELECT id, TestJigNumber, JigDescription, JigStatus  FROM TestJigDetails');
+
+return result.recordset; // Return all records
+};
+export const CreateTest = async (id, TestJigNumber, JigDescription, JigStatus) => {
+const pool = await poolPromise;
+const result = await pool
+.request()
+.input('id', sql.UniqueIdentifier, id)
+.input('TestJigNumber', sql.VarChar, TestJigNumber)
+.input('JigDescription', sql.VarChar, JigDescription)
+.input('JigStatus', sql.VarChar, JigStatus)
+.query(`
+INSERT INTO TestJigDetails (id, TestJigNumber, JigDescription, JigStatus)
+OUTPUT inserted.id, inserted.TestJigNumber, inserted.JigDescription, inserted.JigStatus
+VALUES (@id, @TestJigNumber, @JigDescription, @JigStatus)
+`);
+return result.recordset[0];
+};
+export const UpdateTest = async ({ id, TestJigNumber, JigDescription, JigStatus }) => {
+const pool = await poolPromise;
+const result = await pool
+.request()
+.input('id', sql.UniqueIdentifier, id)
+.input('TestJigNumber', sql.VarChar, TestJigNumber)
+.input('JigDescription', sql.VarChar, JigDescription)
+.input('JigStatus', sql.VarChar, JigStatus)
+.query(`
+UPDATE TestJigDetails
+SET TestJigNumber = @TestJigNumber,
+JigDescription = @JigDescription,
+JigStatus = @JigStatus
+OUTPUT inserted.id, inserted.TestJigNumber, inserted.JigDescription, inserted.JigStatus
+WHERE TestJigNumber = @TestJigNumber
+`);
+return result.recordset[0];
+};
+export const deleteTest = async (id) => {
+const pool = await poolPromise;
+const result = await pool
+.request()
+.input('id', sql.UniqueIdentifier, id)
+.query(`
+DELETE FROM TestJigDetails
+OUTPUT deleted.id, deleted.TestJigNumber, deleted.JigDescription, deleted.JigStatus
+WHERE id = @id
+`);
+return result.recordset[0];
 };

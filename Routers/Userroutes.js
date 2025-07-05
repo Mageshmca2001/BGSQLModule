@@ -16,6 +16,13 @@ userRouter.get('/Calibration', users.CalibrationSerialNumberget);
 userRouter.get('/Accuracy',users.AccuracySerialNumberget);
 userRouter.get('/NIC',users.NICSerialNumberget)
 
+// {*/TestJig*/}
+
+userRouter.get('/getTestjig', users.getTestjig); // you might already have this
+userRouter.post('/postTestjig', users.addTestjig);
+userRouter.put('/putTestjig', users.putTestJig);
+userRouter.delete('/deleteTestjig/:id', users.deleteTestJig);
+
 userRouter.get('/protected', verifyToken, (req, res) => {
 res.status(200).json({ message: 'Access granted', user: req.user });
 });
