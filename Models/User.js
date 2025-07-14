@@ -213,3 +213,13 @@ WHERE id = @id
 `);
 return result.recordset[0];
 };
+
+export const getrecordsdetails = async() => {
+const pool = await poolPromise;
+const result  = await pool
+.request()
+.query('');
+
+return result.recordset;
+
+};
