@@ -1,5 +1,5 @@
 
-import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,getrecordsdetails} from '../Models/User.js'
+import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,getCountsSummary} from '../Models/User.js'
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 
@@ -240,16 +240,15 @@ console.error("Delete user error:", err);
 res.status(500).json({ message: 'Error deleting user', error: err.message });
 }
 };
-export const getrecords =async (req, res) =>{
+export const getTodayAndYesterdayCount = async (req, res) => {
 try {
-const users = await getrecordsdetails(); // Replace with your actual DB query method
-
-res.status(200).json({ users });
+await getCountsSummary(req, res); // ✅ Pass req and res properly
 } catch (err) {
-console.error("Get users error:", err);
-res.status(500).json({ message: 'Error retrieving users', error: err.message });
+console.error("Error fetching counts:", err);
+res.status(500).json({ message: "Error retrieving counts", error: err.message });
 }
 };
-const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getrecords}; 
+
+const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount}; 
 
 export default users;

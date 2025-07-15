@@ -25,7 +25,9 @@ userRouter.delete('/deleteTestjig/:id', users.deleteTestJig);
 
 //{*graph Pie Chat, Grid cols}
 
-userRouter.get('/getrecords', users.getrecords)
+userRouter.get('/today-count', users.getTodayAndYesterdayCount);
+
+
 
 userRouter.get('/protected', verifyToken, (req, res) => {
 res.status(200).json({ message: 'Access granted', user: req.user });
