@@ -212,87 +212,138 @@ WHERE id = @id
 return result.recordset[0];
 };
 export const getCountsSummary = async (req, res) => {
-try {
-const pool = await poolPromise;
+  try {
+    const pool = await poolPromise;
 
-const result = await pool.request().query(`
-SELECT
--- 🔹 Total Counts
-(SELECT COUNT(*) FROM QueryTest 
-WHERE StartDateTime >= CAST(GETDATE() AS DATE)
-AND StartDateTime < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))
-) AS TodayCount,
+    const result = await pool.request().query(`
+      SELECT
+        -- 📊 Overall counts
+        (SELECT COUNT(*) FROM QueryTest 
+          WHERE StartDateTime >= CAST(GETDATE() AS DATE)
+          AND StartDateTime < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))
+        ) AS TodayCount,
 
-(SELECT COUNT(*) FROM QueryTest 
-WHERE StartDateTime >= DATEADD(DAY, -1, CAST(GETDATE() AS DATE))
-AND StartDateTime < CAST(GETDATE() AS DATE)
-) AS YesterdayCount,
+        (SELECT COUNT(*) FROM QueryTest 
+          WHERE StartDateTime >= DATEADD(DAY, -1, CAST(GETDATE() AS DATE))
+          AND StartDateTime < CAST(GETDATE() AS DATE)
+        ) AS YesterdayCount,
 
-(SELECT COUNT(*) FROM QueryTest 
-WHERE StartDateTime >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-AND StartDateTime < DATEADD(DAY, 8 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-) AS CurrentWeekCount,
+        (SELECT COUNT(*) FROM QueryTest 
+          WHERE StartDateTime >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
+          AND StartDateTime < DATEADD(DAY, 8 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
+        ) AS CurrentWeekCount,
 
-(SELECT COUNT(*) FROM QueryTest 
-WHERE StartDateTime >= DATEADD(DAY, -6 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-AND StartDateTime < DATEADD(DAY, 1 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-) AS PreviousWeekCount,
+        (SELECT COUNT(*) FROM QueryTest 
+          WHERE StartDateTime >= DATEADD(DAY, -6 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
+          AND StartDateTime < DATEADD(DAY, 1 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
+        ) AS PreviousWeekCount,
 
--- 🔹 Distinct Completed Counts (by SerialNo + PASS)
-(SELECT COUNT(*) FROM (
-SELECT DISTINCT SerialNo 
-FROM QueryTest
-WHERE StartDateTime >= CAST(GETDATE() AS DATE)
-AND StartDateTime < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))
-AND OverallStatus = 'PASS'
-) AS DistinctToday) AS TodayCompleted,
+        -- ✅ Distinct completed counts
+        (SELECT COUNT(*) FROM (
+          SELECT DISTINCT SerialNo 
+          FROM QueryTest
+          WHERE StartDateTime >= CAST(GETDATE() AS DATE)
+          AND StartDateTime < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))
+          AND OverallStatus = 'PASS'
+        ) AS DistinctToday) AS TodayCompleted,
 
-(SELECT COUNT(*) FROM (
-SELECT DISTINCT SerialNo 
-FROM QueryTest
-WHERE StartDateTime >= DATEADD(DAY, -1, CAST(GETDATE() AS DATE))
-AND StartDateTime < CAST(GETDATE() AS DATE)
-AND OverallStatus = 'PASS'
-) AS DistinctYesterday) AS YesterdayCompleted,
+        (SELECT COUNT(*) FROM (
+          SELECT DISTINCT SerialNo 
+          FROM QueryTest
+          WHERE StartDateTime >= DATEADD(DAY, -1, CAST(GETDATE() AS DATE))
+          AND StartDateTime < CAST(GETDATE() AS DATE)
+          AND OverallStatus = 'PASS'
+        ) AS DistinctYesterday) AS YesterdayCompleted,
 
-(SELECT COUNT(*) FROM (
-SELECT DISTINCT SerialNo 
-FROM QueryTest
-WHERE StartDateTime >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-AND StartDateTime < DATEADD(DAY, 8 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-AND OverallStatus = 'PASS'
-) AS DistinctThisWeek) AS CurrentWeekCompleted,
+        (SELECT COUNT(*) FROM (
+          SELECT DISTINCT SerialNo 
+          FROM QueryTest
+          WHERE StartDateTime >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
+          AND StartDateTime < DATEADD(DAY, 8 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
+          AND OverallStatus = 'PASS'
+        ) AS DistinctThisWeek) AS CurrentWeekCompleted,
 
-(SELECT COUNT(*) FROM (
-SELECT DISTINCT SerialNo 
-FROM QueryTest
-WHERE StartDateTime >= DATEADD(DAY, -6 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-AND StartDateTime < DATEADD(DAY, 1 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-AND OverallStatus = 'PASS'
-) AS DistinctPrevWeek) AS PreviousWeekCompleted
-`);
+        (SELECT COUNT(*) FROM (
+          SELECT DISTINCT SerialNo 
+          FROM QueryTest
+          WHERE StartDateTime >= DATEADD(DAY, -6 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
+          AND StartDateTime < DATEADD(DAY, 1 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
+          AND OverallStatus = 'PASS'
+        ) AS DistinctPrevWeek) AS PreviousWeekCompleted,
 
-const data = result.recordset?.[0];
+        -- ✅ Shifts: Today
+        (SELECT COUNT(*) FROM (
+          SELECT DISTINCT SerialNo
+          FROM QueryTest
+          WHERE StartDateTime >= DATEADD(HOUR, 6, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
+            AND StartDateTime <  DATEADD(HOUR, 14, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
+            AND OverallStatus = 'PASS'
+        ) AS S1) AS TodayShift1,
 
-if (!data) {
-return res.status(404).json({
-success: false,
-message: 'No count data found'
-});
-}
+        (SELECT COUNT(*) FROM (
+          SELECT DISTINCT SerialNo
+          FROM QueryTest
+          WHERE StartDateTime >= DATEADD(HOUR, 14, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
+            AND StartDateTime <  DATEADD(HOUR, 22, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
+            AND OverallStatus = 'PASS'
+        ) AS S2) AS TodayShift2,
 
-res.status(200).json({
-success: true,
-data
-});
+        (SELECT COUNT(*) FROM (
+          SELECT DISTINCT SerialNo
+          FROM QueryTest
+          WHERE StartDateTime >= DATEADD(HOUR, 22, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
+            AND StartDateTime <  DATEADD(HOUR, 6, CAST(CAST(DATEADD(DAY, 1, GETDATE()) AS DATE) AS DATETIME))
+            AND OverallStatus = 'PASS'
+        ) AS S3) AS TodayShift3,
 
-} catch (error) {
-console.error('Error retrieving counts:', error);
-res.status(500).json({
-success: false,
-message: 'Error retrieving counts',
-error: error.message
-});
-}
+        -- ✅ Shifts: Yesterday
+        (SELECT COUNT(*) FROM (
+          SELECT DISTINCT SerialNo
+          FROM QueryTest
+          WHERE StartDateTime >= DATEADD(HOUR, 6, CAST(CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AS DATETIME))
+            AND StartDateTime <  DATEADD(HOUR, 14, CAST(CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AS DATETIME))
+            AND OverallStatus = 'PASS'
+        ) AS YS1) AS YesterdayShift1,
+
+        (SELECT COUNT(*) FROM (
+          SELECT DISTINCT SerialNo
+          FROM QueryTest
+          WHERE StartDateTime >= DATEADD(HOUR, 14, CAST(CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AS DATETIME))
+            AND StartDateTime <  DATEADD(HOUR, 22, CAST(CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AS DATETIME))
+            AND OverallStatus = 'PASS'
+        ) AS YS2) AS YesterdayShift2,
+
+        (SELECT COUNT(*) FROM (
+          SELECT DISTINCT SerialNo
+          FROM QueryTest
+          WHERE StartDateTime >= DATEADD(HOUR, 22, CAST(CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AS DATETIME))
+            AND StartDateTime <  DATEADD(HOUR, 6, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
+            AND OverallStatus = 'PASS'
+        ) AS YS3) AS YesterdayShift3
+    `);
+
+    const data = result.recordset?.[0];
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: 'No count data found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+
+  } catch (error) {
+    console.error('Error retrieving counts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving counts',
+      error: error.message
+    });
+  }
 };
+
 
