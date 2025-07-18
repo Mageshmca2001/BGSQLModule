@@ -25,7 +25,7 @@ userRouter.delete('/deleteTestjig/:id', users.deleteTestJig);
 
 //{*graph Pie Chat, Grid cols}
 
-userRouter.get('/today-count', users.getTodayAndYesterdayCount);
+userRouter.get('/count', users.getTodayAndYesterdayCount);
 
 
 
