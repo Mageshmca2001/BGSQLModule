@@ -345,8 +345,6 @@ try {
   });
 }
 };
-
-
 export const getstore = async (req, res) => {
 try {
 const today = new Date();
