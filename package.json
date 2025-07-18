@@ -5,8 +5,8 @@
   "keywords": [
     "Server"
   ],
-  "license": "MIT ",
-  "author": "app.soft",
+  "license": "BGT",
+  "author": "app.soft - (Magesh.B & RanjithKumar,Gopikrishnan: Team Lead - Nagarajan)",
   "type": "module",
   "main": "server.js",
   "scripts": {
