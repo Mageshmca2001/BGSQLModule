@@ -349,28 +349,43 @@ try {
 
 export const getstore = async (req, res) => {
 try {
-const { date } = req.body;
+const today = new Date();
 
-if (!date) {
-return res.status(400).json({
-success: false,
-message: 'Date is required (format: YYYY-MM-DD)'
-});
-}
+// === 🗓️ 1. Find current week's Sunday (start)
+const currentDay = today.getDay(); // 0 (Sun) - 6 (Sat)
+const currentWeekStart = new Date(today);
+currentWeekStart.setDate(today.getDate() - currentDay); // Sunday
+
+// === 🗓️ 2. Previous week's Sunday
+const previousWeekStart = new Date(currentWeekStart);
+previousWeekStart.setDate(currentWeekStart.getDate() - 7); // Previous Sunday
+
+// === Format as YYYY-MM-DD
+const formatDate = (date) => date.toISOString().split('T')[0];
+const currentDateStr = formatDate(currentWeekStart);
+const previousDateStr = formatDate(previousWeekStart);
 
 const pool = await poolPromise;
 
-const result = await pool
+// === Call stored procedure for current week
+const currentWeekResult = await pool
 .request()
-.input('GivenDate', date)
+.input('GivenDate', currentDateStr)
 .execute('SP_SampleData');
 
-// Get both result sets: [0] = current week, [1] = previous week
-const currentWeek = result.recordsets?.[0] || [];
-const previousWeek = result.recordsets?.[1] || [];
+// === Call stored procedure for previous week
+const previousWeekResult = await pool
+.request()
+.input('GivenDate', previousDateStr)
+.execute('SP_SampleData');
 
-res.status(200).json({
+const currentWeek = currentWeekResult.recordset || [];
+const previousWeek = previousWeekResult.recordset || [];
+
+return res.status(200).json({
 success: true,
+currentWeekStart: currentDateStr,
+previousWeekStart: previousDateStr,
 data: {
 currentWeek,
 previousWeek
@@ -378,7 +393,7 @@ previousWeek
 });
 
 } catch (error) {
-console.error('Error calling SP_SampleData:', error);
+console.error('Error in getstore:', error);
 res.status(500).json({
 success: false,
 message: 'Error retrieving data from stored procedure',
@@ -386,5 +401,6 @@ error: error.message
 });
 }
 };
+
 
 
