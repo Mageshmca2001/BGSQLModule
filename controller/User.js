@@ -1,5 +1,5 @@
 
-import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,getstore} from '../Models/User.js'
+import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests} from '../Models/User.js'
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 
@@ -243,7 +243,20 @@ res.status(500).json({ message: 'Error deleting user', error: err.message });
 export const getTodayAndYesterdayCount = async (req, res) => {
 try {
 // Assumes date is posted in body, e.g., { "date": "2025-07-18" }
-await getstore(req, res); // Delegates to your main function
+await gettoday_yesterdayData(req, res); // Delegates to your main function
+} catch (err) {
+console.error("Error fetching counts:", err);
+res.status(500).json({
+success: false,
+message: "Error retrieving counts",
+error: err.message
+});
+}
+};
+export const getpresentAndweekCount = async (req, res) => {
+try {
+// Assumes date is posted in body, e.g., { "date": "2025-07-18" }
+await getWeeklyDataAllTests(req, res); // Delegates to your main function
 } catch (err) {
 console.error("Error fetching counts:", err);
 res.status(500).json({
@@ -255,6 +268,6 @@ error: err.message
 };
 
 
-const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount}; 
+const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount,getpresentAndweekCount}; 
 
 export default users;

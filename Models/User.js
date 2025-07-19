@@ -211,194 +211,138 @@ WHERE id = @id
 `);
 return result.recordset[0];
 };
-export const getCountsSummary = async (req, res) => {
+export const gettoday_yesterdayData = async (req, res) => {
 try {
-  const pool = await poolPromise;
-
-  const result = await pool.request().query(`
-    SELECT
-      -- 📊 Overall counts
-      (SELECT COUNT(*) FROM QueryTest 
-        WHERE StartDateTime >= CAST(GETDATE() AS DATE)
-        AND StartDateTime < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))
-      ) AS TodayCount,
-
-      (SELECT COUNT(*) FROM QueryTest 
-        WHERE StartDateTime >= DATEADD(DAY, -1, CAST(GETDATE() AS DATE))
-        AND StartDateTime < CAST(GETDATE() AS DATE)
-      ) AS YesterdayCount,
-
-      (SELECT COUNT(*) FROM QueryTest 
-        WHERE StartDateTime >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-        AND StartDateTime < DATEADD(DAY, 8 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-      ) AS CurrentWeekCount,
-
-      (SELECT COUNT(*) FROM QueryTest 
-        WHERE StartDateTime >= DATEADD(DAY, -6 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-        AND StartDateTime < DATEADD(DAY, 1 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-      ) AS PreviousWeekCount,
-
-      -- ✅ Distinct completed counts
-      (SELECT COUNT(*) FROM (
-        SELECT DISTINCT SerialNo 
-        FROM QueryTest
-        WHERE StartDateTime >= CAST(GETDATE() AS DATE)
-        AND StartDateTime < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))
-        AND OverallStatus = 'PASS'
-      ) AS DistinctToday) AS TodayCompleted,
-
-      (SELECT COUNT(*) FROM (
-        SELECT DISTINCT SerialNo 
-        FROM QueryTest
-        WHERE StartDateTime >= DATEADD(DAY, -1, CAST(GETDATE() AS DATE))
-        AND StartDateTime < CAST(GETDATE() AS DATE)
-        AND OverallStatus = 'PASS'
-      ) AS DistinctYesterday) AS YesterdayCompleted,
-
-      (SELECT COUNT(*) FROM (
-        SELECT DISTINCT SerialNo 
-        FROM QueryTest
-        WHERE StartDateTime >= DATEADD(DAY, 1 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-        AND StartDateTime < DATEADD(DAY, 8 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-        AND OverallStatus = 'PASS'
-      ) AS DistinctThisWeek) AS CurrentWeekCompleted,
-
-      (SELECT COUNT(*) FROM (
-        SELECT DISTINCT SerialNo 
-        FROM QueryTest
-        WHERE StartDateTime >= DATEADD(DAY, -6 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-        AND StartDateTime < DATEADD(DAY, 1 - DATEPART(WEEKDAY, GETDATE()), CAST(GETDATE() AS DATE))
-        AND OverallStatus = 'PASS'
-      ) AS DistinctPrevWeek) AS PreviousWeekCompleted,
-
-      -- ✅ Shifts: Today
-      (SELECT COUNT(*) FROM (
-        SELECT DISTINCT SerialNo
-        FROM QueryTest
-        WHERE StartDateTime >= DATEADD(HOUR, 6, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
-          AND StartDateTime <  DATEADD(HOUR, 14, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
-          AND OverallStatus = 'PASS'
-      ) AS S1) AS TodayShift1,
-
-      (SELECT COUNT(*) FROM (
-        SELECT DISTINCT SerialNo
-        FROM QueryTest
-        WHERE StartDateTime >= DATEADD(HOUR, 14, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
-          AND StartDateTime <  DATEADD(HOUR, 22, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
-          AND OverallStatus = 'PASS'
-      ) AS S2) AS TodayShift2,
-
-      (SELECT COUNT(*) FROM (
-        SELECT DISTINCT SerialNo
-        FROM QueryTest
-        WHERE StartDateTime >= DATEADD(HOUR, 22, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
-          AND StartDateTime <  DATEADD(HOUR, 6, CAST(CAST(DATEADD(DAY, 1, GETDATE()) AS DATE) AS DATETIME))
-          AND OverallStatus = 'PASS'
-      ) AS S3) AS TodayShift3,
-
-      -- ✅ Shifts: Yesterday
-      (SELECT COUNT(*) FROM (
-        SELECT DISTINCT SerialNo
-        FROM QueryTest
-        WHERE StartDateTime >= DATEADD(HOUR, 6, CAST(CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AS DATETIME))
-          AND StartDateTime <  DATEADD(HOUR, 14, CAST(CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AS DATETIME))
-          AND OverallStatus = 'PASS'
-      ) AS YS1) AS YesterdayShift1,
-
-      (SELECT COUNT(*) FROM (
-        SELECT DISTINCT SerialNo
-        FROM QueryTest
-        WHERE StartDateTime >= DATEADD(HOUR, 14, CAST(CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AS DATETIME))
-          AND StartDateTime <  DATEADD(HOUR, 22, CAST(CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AS DATETIME))
-          AND OverallStatus = 'PASS'
-      ) AS YS2) AS YesterdayShift2,
-
-      (SELECT COUNT(*) FROM (
-        SELECT DISTINCT SerialNo
-        FROM QueryTest
-        WHERE StartDateTime >= DATEADD(HOUR, 22, CAST(CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) AS DATETIME))
-          AND StartDateTime <  DATEADD(HOUR, 6, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
-          AND OverallStatus = 'PASS'
-      ) AS YS3) AS YesterdayShift3
-  `);
-
-  const data = result.recordset?.[0];
-
-  if (!data) {
-    return res.status(404).json({
-      success: false,
-      message: 'No count data found'
-    });
-  }
-
-  res.status(200).json({
-    success: true,
-    data
-  });
-
-} catch (error) {
-  console.error('Error retrieving counts:', error);
-  res.status(500).json({
-    success: false,
-    message: 'Error retrieving counts',
-    error: error.message
-  });
-}
-};
-export const getstore = async (req, res) => {
-try {
+// Get today's and yesterday's dates
 const today = new Date();
+const yesterday = new Date(today);
+yesterday.setDate(today.getDate() - 1);
 
-// === 🗓️ 1. Find current week's Sunday (start)
-const currentDay = today.getDay(); // 0 (Sun) - 6 (Sat)
-const currentWeekStart = new Date(today);
-currentWeekStart.setDate(today.getDate() - currentDay); // Sunday
-
-// === 🗓️ 2. Previous week's Sunday
-const previousWeekStart = new Date(currentWeekStart);
-previousWeekStart.setDate(currentWeekStart.getDate() - 7); // Previous Sunday
-
-// === Format as YYYY-MM-DD
+// Format dates as 'YYYY-MM-DD'
 const formatDate = (date) => date.toISOString().split('T')[0];
-const currentDateStr = formatDate(currentWeekStart);
-const previousDateStr = formatDate(previousWeekStart);
+const todayStr = formatDate(today);
+const yesterdayStr = formatDate(yesterday);
+
+// List of stored procedures to call
+const procedures = [
+{ name: 'Functional', sp: 'SP_GetMeterCountPerDay_FunctionalTestDetails' },
+{ name: 'Calibration', sp: 'SP_GetMeterCountPerDay_CalibrationTest' },
+{ name: 'Accuracy', sp: 'SP_GetMeterCountPerDay_AccuracyTest' },
+{ name: 'NICComTest', sp: 'SP_GetMeterCountPerDay_NICComTest' },
+{ name: 'FinalTest', sp: 'SP_GetMeterCountPerDay_FinalTestDetails' }
+];
 
 const pool = await poolPromise;
 
-// === Call stored procedure for current week
-const currentWeekResult = await pool
+// Final structure
+const results = {
+today: {},
+yesterday: {}
+};
+
+for (const proc of procedures) {
+// === Get today's data
+const todayResult = await pool
 .request()
-.input('GivenDate', currentDateStr)
-.execute('SP_SampleData');
+.input('CurrentDateTime', todayStr)
+.execute(proc.sp);
 
-// === Call stored procedure for previous week
-const previousWeekResult = await pool
+// === Get yesterday's data
+const yesterdayResult = await pool
 .request()
-.input('GivenDate', previousDateStr)
-.execute('SP_SampleData');
+.input('CurrentDateTime', yesterdayStr)
+.execute(proc.sp);
 
-const currentWeek = currentWeekResult.recordset || [];
-const previousWeek = previousWeekResult.recordset || [];
+// Store results by name
+results.today[proc.name] = todayResult.recordset || [];
+results.yesterday[proc.name] = yesterdayResult.recordset || [];
+}
 
+// Return final response
 return res.status(200).json({
 success: true,
-currentWeekStart: currentDateStr,
-previousWeekStart: previousDateStr,
-data: {
-currentWeek,
-previousWeek
-}
+today: todayStr,
+yesterday: yesterdayStr,
+data: results
 });
-
 } catch (error) {
-console.error('Error in getstore:', error);
-res.status(500).json({
+console.error('Error in gettoday_yesterdayData:', error);
+return res.status(500).json({
 success: false,
-message: 'Error retrieving data from stored procedure',
+message: 'Error retrieving data from stored procedures',
 error: error.message
 });
 }
 };
+export const getWeeklyDataAllTests = async (req, res) => {
+try {
+const today = new Date();
+
+// Get Sunday of current week
+const currentDay = today.getDay(); // 0 = Sunday
+const currentWeekStart = new Date(today);
+currentWeekStart.setDate(today.getDate() - currentDay);
+
+// Get Sunday of previous week
+const previousWeekStart = new Date(currentWeekStart);
+previousWeekStart.setDate(currentWeekStart.getDate() - 7);
+
+const formatDate = (date) => date.toISOString().split('T')[0];
+const currentWeekStr = formatDate(currentWeekStart);
+const previousWeekStr = formatDate(previousWeekStart);
+
+const pool = await poolPromise;
+
+const procedures = [
+{ name: 'Functional', sp: 'SP_GetMeterCountPerWeek_FunctionalTestDetails', param: 'GivenDate' },
+{ name: 'Calibration', sp: 'SP_GetMeterCountPerWeek_CalibrationTest', param: 'GivenDate' },
+{ name: 'Accuracy', sp: 'SP_GetMeterCountPerWeek_AccuracyTest', param: 'GivenDate' }, // Weekly SP
+{ name: 'NIC', sp: 'SP_GetMeterCountPerWeek_NICComTest', param: 'GivenDate' },
+{ name: 'Final', sp: 'SP_GetMeterCountPerWeek_FinalTestDetails', param: 'GivenDate' } // Weekly SP
+];
+
+const results = {
+currentWeek: {},
+previousWeek: {}
+};
+
+for (const proc of procedures) {
+const paramName = proc.param;
+
+// === Current Week Data
+const currentResult = await pool
+.request()
+.input(paramName, currentWeekStr)
+.execute(proc.sp);
+
+// === Previous Week Data
+const previousResult = await pool
+.request()
+.input(paramName, previousWeekStr)
+.execute(proc.sp);
+
+results.currentWeek[proc.name] = currentResult.recordset || [];
+results.previousWeek[proc.name] = previousResult.recordset || [];
+}
+
+return res.status(200).json({
+success: true,
+currentWeekStart: currentWeekStr,
+previousWeekStart: previousWeekStr,
+data: results
+});
+
+} catch (error) {
+console.error('Error in getWeeklyDataAllTests:', error);
+return res.status(500).json({
+success: false,
+message: 'Error retrieving weekly data from stored procedures',
+error: error.message
+});
+}
+};
+
+
 
 
 
