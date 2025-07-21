@@ -341,33 +341,144 @@ error: error.message
 });
 }
 };
-export const getHourlyMeterCountFunctionalTest = async (req, res) => {
+export const getHourlyMeterCountsAllTests = async (req, res) => {
 try {
 const pool = await poolPromise;
 
-// Accept date from query/body or default to current datetime
-const inputDateTime = req.body.dateTime || new Date(); // Expecting ISO format or JS Date
+// Get requested date (default: today), and force to 00:00:00
+const inputDateTime = req.body.dateTime ? new Date(req.body.dateTime) : new Date();
+const presentDate = new Date(inputDateTime);
+presentDate.setHours(0, 0, 0, 0); // ✅ Important fix
 
+const previousDate = new Date(presentDate);
+previousDate.setDate(presentDate.getDate() - 1);
+
+// All meter test SPs (all statuses)
+const procedures = [
+{ name: 'Functional', sp: 'SP_GetMeterCountPerHour_FunctionalTestDetails' },
+{ name: 'Calibration', sp: 'SP_GetMeterCountPerHour_CalibrationTest' },
+{ name: 'Accuracy', sp: 'SP_GetMeterCountPerHour_AccuracyTest' },
+{ name: 'NIC', sp: 'SP_GetMeterCountPerHour_NICComTest' },
+{ name: 'FinalTest', sp: 'SP_GetMeterCountPerHour_FinalTestDetails' }
+];
+
+// SPs for Status = 'Pass' counts
+const passProcedures = [
+{ name: 'Functional', sp: 'SP_GetMeterCountPerHour_FunctionalTestDetails' },
+{ name: 'Calibration', sp: 'SP_GetMeterCountPerHour_CalibrationTest' },
+{ name: 'Accuracy', sp: 'SP_GetMeterCountPerHour_AccuracyTest' },
+{ name: 'NIC', sp: 'SP_GetMeterCountPerHour_NICComTest' },
+{ name: 'FinalTest', sp: 'SP_GetMeterCountPerHour_FinalTestDetails' }
+];
+
+const presentResults = {};
+const presentPassResults = {};
+const presentStatus = {};
+
+// Fetch all data (all statuses)
+for (const proc of procedures) {
 const result = await pool
 .request()
-.input('CurrentDateTime', new Date(inputDateTime))
-.execute('SP_GetMeterCountPerHour_FunctionalTestDetails');
+.input('CurrentDateTime', presentDate)
+.execute(proc.sp);
+
+presentResults[proc.name] = result.recordset || [];
+presentStatus[proc.name] = presentResults[proc.name].reduce((sum, e) => sum + (e.MeterCount || 0), 0);
+}
+
+// Fetch pass-only data
+for (const proc of passProcedures) {
+const result = await pool
+.request()
+.input('CurrentDateTime', presentDate)
+.execute(proc.sp);
+
+presentPassResults[proc.name] = result.recordset || [];
+}
+
+// Hour label formatter: 06:00 - 07:00
+const formatHourLabel = (hour) => {
+const pad = (n) => n.toString().padStart(2, '0');
+const h1 = pad(hour);
+const h2 = pad((hour + 1) % 24);
+return `${h1}:00 - ${h2}:00`;
+};
+
+// Merge both all-status and pass-only data
+const mergeHourlyData = (results, passResults) => {
+const hourlyMap = {};
+const passMap = {};
+
+// Process all results
+for (const category in results) {
+for (const entry of results[category]) {
+const hour = entry.Hour;
+const count = entry.MeterCount;
+if (typeof hour !== 'number' || hour < 0 || hour > 23) continue;
+
+const label = formatHourLabel(hour);
+if (!hourlyMap[label]) hourlyMap[label] = { time: label };
+hourlyMap[label][category] = (hourlyMap[label][category] || 0) + count;
+}
+}
+
+// Process pass-only results
+for (const category in passResults) {
+for (const entry of passResults[category]) {
+const hour = entry.Hour;
+const count = entry.MeterCount;
+if (typeof hour !== 'number' || hour < 0 || hour > 23) continue;
+
+const label = formatHourLabel(hour);
+if (!passMap[label]) passMap[label] = {};
+passMap[label][category] = (passMap[label][category] || 0) + count;
+}
+}
+
+const orderedHours = [...Array(24).keys()].map(i => (i + 6) % 24); // 06:00 to 05:00
+const fullList = [];
+
+for (const hour of orderedHours) {
+const label = formatHourLabel(hour);
+const base = { time: label };
+let completed = 0;
+
+for (const proc of procedures) {
+const name = proc.name;
+base[name] = (hourlyMap[label] && hourlyMap[label][name]) || 0;
+
+const passCount = (passMap[label] && passMap[label][name]) || 0;
+completed += passCount;
+}
+
+base.Completed = completed;
+fullList.push(base);
+}
+
+return fullList;
+};
+
+const hourlyDetails = mergeHourlyData(presentResults, presentPassResults);
 
 return res.status(200).json({
 success: true,
-requestedDateTime: inputDateTime,
-data: result.recordset || []
+requestedDateTime: presentDate,
+hourlyDetails,
+presentStatus
 });
 
 } catch (error) {
-console.error('Error in getHourlyMeterCountFunctionalTest:', error);
+console.error('Error in getHourlyMeterCountsAllTests:', error);
 return res.status(500).json({
 success: false,
-message: 'Error retrieving hourly meter count from stored procedure',
+message: 'Error retrieving hourly meter counts',
 error: error.message
 });
 }
 };
+
+
+
 
 
 
