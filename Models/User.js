@@ -341,6 +341,34 @@ error: error.message
 });
 }
 };
+export const getHourlyMeterCountFunctionalTest = async (req, res) => {
+try {
+const pool = await poolPromise;
+
+// Accept date from query/body or default to current datetime
+const inputDateTime = req.body.dateTime || new Date(); // Expecting ISO format or JS Date
+
+const result = await pool
+.request()
+.input('CurrentDateTime', new Date(inputDateTime))
+.execute('SP_GetMeterCountPerHour_FunctionalTestDetails');
+
+return res.status(200).json({
+success: true,
+requestedDateTime: inputDateTime,
+data: result.recordset || []
+});
+
+} catch (error) {
+console.error('Error in getHourlyMeterCountFunctionalTest:', error);
+return res.status(500).json({
+success: false,
+message: 'Error retrieving hourly meter count from stored procedure',
+error: error.message
+});
+}
+};
+
 
 
 

@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyToken } from '../middleware/middleware.js';
-import users, { getpresentAndweekCount }  from '../controller/User.js';
+import users, { gethourlyprogress, getpresentAndweekCount }  from '../controller/User.js';
 const userRouter = express.Router();
 
 userRouter.post('/addusers', users.addusers)
@@ -26,7 +26,9 @@ userRouter.delete('/deleteTestjig/:id', users.deleteTestJig);
 //{*graph Pie Chat, Grid cols}
 
 userRouter.get('/count', users.getTodayAndYesterdayCount);
-userRouter.get('/week',getpresentAndweekCount)
+userRouter.get('/week',users.getpresentAndweekCount)
+
+userRouter.get('/hourly',users.gethourlyprogress);
 
 
 
