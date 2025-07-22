@@ -1,5 +1,5 @@
 
-import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests,getHourlyMeterCountsAllTests} from '../Models/User.js'
+import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests,getHourlyDataAllTests} from '../Models/User.js'
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 
@@ -269,7 +269,7 @@ error: err.message
 export const gethourlyprogress = async (req, res) => {
 try {
 // Assumes date is posted in body, e.g., { "date": "2025-07-18" }
-await getHourlyMeterCountsAllTests(req, res); // Delegates to your main function
+await getHourlyDataAllTests(req, res); // Delegates to your main function
 } catch (err) {
 console.error("Error fetching counts:", err);
 res.status(500).json({
