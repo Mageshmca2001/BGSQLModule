@@ -346,6 +346,11 @@ try {
 const inputDate = req.body.dateTime ? new Date(req.body.dateTime) : new Date();
 const pool = await poolPromise;
 
+// Prepare both dates
+const currentDate = new Date(inputDate);
+const previousDate = new Date(inputDate);
+previousDate.setDate(previousDate.getDate() - 1);
+
 const procedures = [
 { name: 'Functional', sp: 'SP_GetMeterCountPerHour_FunctionalTestDetails', param: 'CurrentDateTime' },
 { name: 'Calibration', sp: 'SP_GetMeterCountPerHour_CalibrationTest', param: 'CurrentDateTime' },
@@ -354,13 +359,15 @@ const procedures = [
 { name: 'FinalTest', sp: 'SP_GetMeterCountPerHour_FinalTestDetails', param: 'CurrentDateTime' }
 ];
 
+// Helper to process resultsets
+const processDataForDate = async (date) => {
 const results = {};
-const completedMap = {}; // { TimeSlot: { Functional: count, ... } }
+const completedMap = {};
 
 for (const proc of procedures) {
 const response = await pool
 .request()
-.input(proc.param, inputDate)
+.input(proc.param, date)
 .execute(proc.sp);
 
 const recordset = response.recordset || [];
@@ -372,23 +379,34 @@ const startHour = TimeSlot?.split('-')[0];
 
 if (!startHour || Status !== 'PASS') return;
 
-if (!completedMap[startHour]) {
-completedMap[startHour] = {};
-}
-
-if (!completedMap[startHour][proc.name]) {
-completedMap[startHour][proc.name] = 0;
-}
+if (!completedMap[startHour]) completedMap[startHour] = {};
+if (!completedMap[startHour][proc.name]) completedMap[startHour][proc.name] = 0;
 
 completedMap[startHour][proc.name] += MeterCount || 0;
 });
 }
 
+return { results, completedMap };
+};
+
+// Process both dates
+const currentDayData = await processDataForDate(currentDate);
+const previousDayData = await processDataForDate(previousDate);
+
 return res.status(200).json({
 success: true,
-date: inputDate.toISOString().split('T')[0],
-data: results,
-completedPerHour: completedMap // ← completed per hour per test type
+currentDate: currentDate.toISOString().split('T')[0],
+previousDate: previousDate.toISOString().split('T')[0],
+data: {
+current: {
+fullData: currentDayData.results,
+completedPerHour: currentDayData.completedMap
+},
+previous: {
+fullData: previousDayData.results,
+completedPerHour: previousDayData.completedMap
+}
+}
 });
 
 } catch (error) {
@@ -400,6 +418,7 @@ error: error.message
 });
 }
 };
+
 
 
 
