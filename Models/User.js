@@ -421,6 +421,63 @@ error: error.message
 
 
 
+// ✅ Get all table names from the database
+export const getAllTableNames = async () => {
+const pool = await poolPromise;
+const result = await pool.request().query(`
+SELECT TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_TYPE = 'BASE TABLE'
+`);
+return result.recordset.map(row => row.TABLE_NAME); // ✅ Just return the data
+};
+
+// ✅ Get all rows from a selected table (safe version)
+export const getTableData = async (tableName, fromDate, toDate) => {
+const pool = await poolPromise;
+
+// Sanitize table name
+const sanitized = tableName.replace(/[^a-zA-Z0-9_]/g, '');
+
+// List of known datetime/date columns
+const possibleDateColumns = ['CreatedAt', 'CreatedDate', 'TimeStamp', 'DateTime', 'UpdatedAt'];
+
+try {
+// Fetch sample row to detect available columns
+const columnResult = await pool
+.request()
+.query(`SELECT TOP 1 * FROM [${sanitized}]`);
+
+const columns = Object.keys(columnResult.recordset[0] || {});
+const filterColumn = possibleDateColumns.find(col => columns.includes(col));
+
+// If no matching date column, return empty list
+if (!filterColumn) {
+console.warn(`⚠️ No valid date column found in table ${sanitized}`);
+return [];
+}
+
+// Build and run date-filtered query
+const query = `
+SELECT * FROM [${sanitized}]
+WHERE CAST([${filterColumn}] AS DATE)
+BETWEEN CAST(@fromDate AS DATE) AND CAST(@toDate AS DATE)
+`;
+
+const result = await pool
+.request()
+.input('fromDate', new Date(fromDate))
+.input('toDate', new Date(toDate))
+.query(query);
+
+return result.recordset;
+
+} catch (err) {
+console.error(`❌ Failed to fetch table: ${sanitized}`, err);
+throw err;
+}
+};
+
 
 
 

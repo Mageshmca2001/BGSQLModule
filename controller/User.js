@@ -1,5 +1,5 @@
 
-import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests,getHourlyDataAllTests} from '../Models/User.js'
+import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests,getHourlyDataAllTests,getAllTableNames,getTableData} from '../Models/User.js'
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 
@@ -280,7 +280,37 @@ error: err.message
 }
 };
 
+export const fetchTableList = async (req, res) => {
+try {
+const tables = await getAllTableNames();
+res.json(tables);
+} catch (err) {
+console.error(err);
+res.status(500).json({ error: 'Failed to load table list' });
+}
+};
 
-const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount,getpresentAndweekCount,gethourlyprogress}; 
+export const fetchTableData = async (req, res) => {
+const { fromDate, toDate } = req.query;
+const tableName = req.params.tableName;
+
+if (!tableName) {
+return res.status(400).json({ error: 'Table name is required in the URL.' });
+}
+
+try {
+const data = await getTableData(tableName, fromDate, toDate);
+res.json(data);
+} catch (err) {
+console.error(`❌ Error fetching data for table: ${tableName}`, err);
+res.status(500).json({
+error: `Failed to fetch data for table: ${tableName}`,
+});
+}
+};
+
+
+
+const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount,getpresentAndweekCount,gethourlyprogress,fetchTableList,fetchTableData}; 
 
 export default users;

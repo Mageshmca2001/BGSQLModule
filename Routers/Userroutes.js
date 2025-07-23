@@ -30,7 +30,9 @@ userRouter.get('/week',users.getpresentAndweekCount)
 
 userRouter.get('/hourly',users.gethourlyprogress);
 
-
+//{*Testing}
+userRouter.get('/tables', users.fetchTableList);
+userRouter.get('/tables/:tableName',users.fetchTableData)
 
 userRouter.get('/protected', verifyToken, (req, res) => {
 res.status(200).json({ message: 'Access granted', user: req.user });
