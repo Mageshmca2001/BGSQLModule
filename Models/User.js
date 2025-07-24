@@ -213,7 +213,6 @@ return result.recordset[0];
 };
 
 
-
 export const gettoday_yesterdayData = async (req, res) => {
 try {
 // Get today's and yesterday's dates
@@ -274,11 +273,6 @@ error: error.message
 });
 }
 };
-
-
-
-
-
 export const getWeeklyDataAllTests = async (req, res) => {
 try {
 const today = new Date();
@@ -292,48 +286,33 @@ currentWeekStart.setDate(today.getDate() - currentDay);
 const previousWeekStart = new Date(currentWeekStart);
 previousWeekStart.setDate(currentWeekStart.getDate() - 7);
 
-const formatDate = (date) => date.toISOString().split('T')[0];
-const currentWeekStr = formatDate(currentWeekStart);
-const previousWeekStr = formatDate(previousWeekStart);
-
 const pool = await poolPromise;
 
-const procedures = [
-{ name: 'Functional', sp: 'SP_GetMeterCountPerWeek_FunctionalTestDetails', param: 'GivenDate' },
-{ name: 'Calibration', sp: 'SP_GetMeterCountPerWeek_CalibrationTest', param: 'GivenDate' },
-{ name: 'Accuracy', sp: 'SP_GetMeterCountPerWeek_AccuracyTest', param: 'GivenDate' }, // Weekly SP
-{ name: 'NIC', sp: 'SP_GetMeterCountPerWeek_NICComTest', param: 'GivenDate' },
-{ name: 'Final', sp: 'SP_GetMeterCountPerWeek_FinalTestDetails', param: 'GivenDate' } // Weekly SP
-];
-
 const results = {
-currentWeek: {},
-previousWeek: {}
+currentWeek: [],
+previousWeek: []
 };
-
-for (const proc of procedures) {
-const paramName = proc.param;
 
 // === Current Week Data
 const currentResult = await pool
 .request()
-.input(paramName, currentWeekStr)
-.execute(proc.sp);
+.input('InputDateTime', currentWeekStart)
+.execute('SP_GetCountPerWeek_DashboardResultDetails111');
+
+results.currentWeek = currentResult.recordset || [];
 
 // === Previous Week Data
 const previousResult = await pool
 .request()
-.input(paramName, previousWeekStr)
-.execute(proc.sp);
+.input('InputDateTime', previousWeekStart)
+.execute('SP_GetCountPerWeek_DashboardResultDetails111');
 
-results.currentWeek[proc.name] = currentResult.recordset || [];
-results.previousWeek[proc.name] = previousResult.recordset || [];
-}
+results.previousWeek = previousResult.recordset || [];
 
 return res.status(200).json({
 success: true,
-currentWeekStart: currentWeekStr,
-previousWeekStart: previousWeekStr,
+currentWeekStart: currentWeekStart.toISOString().split('T')[0],
+previousWeekStart: previousWeekStart.toISOString().split('T')[0],
 data: results
 });
 
@@ -341,11 +320,12 @@ data: results
 console.error('Error in getWeeklyDataAllTests:', error);
 return res.status(500).json({
 success: false,
-message: 'Error retrieving weekly data from stored procedures',
+message: 'Error retrieving weekly data from stored procedure',
 error: error.message
 });
 }
 };
+
 export const getHourlyDataAllTests = async (req, res) => {
 try {
 const inputDate = req.body.dateTime ? new Date(req.body.dateTime) : new Date();
