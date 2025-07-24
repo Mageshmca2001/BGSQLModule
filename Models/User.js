@@ -211,6 +211,9 @@ WHERE id = @id
 `);
 return result.recordset[0];
 };
+
+
+
 export const gettoday_yesterdayData = async (req, res) => {
 try {
 // Get today's and yesterday's dates
@@ -225,11 +228,7 @@ const yesterdayStr = formatDate(yesterday);
 
 // List of stored procedures to call
 const procedures = [
-{ name: 'Functional', sp: 'SP_GetMeterCountPerDay_FunctionalTestDetails' },
-{ name: 'Calibration', sp: 'SP_GetMeterCountPerDay_CalibrationTest' },
-{ name: 'Accuracy', sp: 'SP_GetMeterCountPerDay_AccuracyTest' },
-{ name: 'NICComTest', sp: 'SP_GetMeterCountPerDay_NICComTest' },
-{ name: 'FinalTest', sp: 'SP_GetMeterCountPerDay_FinalTestDetails' }
+{ name: 'ShiftWiseSummary', sp: 'SP_GetCountPerDay_DashboardResultDetails' }, // new shift-wise SP
 ];
 
 const pool = await poolPromise;
@@ -244,13 +243,13 @@ for (const proc of procedures) {
 // === Get today's data
 const todayResult = await pool
 .request()
-.input('CurrentDateTime', todayStr)
+.input('InputDateTime', todayStr)
 .execute(proc.sp);
 
 // === Get yesterday's data
 const yesterdayResult = await pool
 .request()
-.input('CurrentDateTime', yesterdayStr)
+.input('InputDateTime', yesterdayStr)
 .execute(proc.sp);
 
 // Store results by name
@@ -265,6 +264,7 @@ today: todayStr,
 yesterday: yesterdayStr,
 data: results
 });
+
 } catch (error) {
 console.error('Error in gettoday_yesterdayData:', error);
 return res.status(500).json({
@@ -274,6 +274,11 @@ error: error.message
 });
 }
 };
+
+
+
+
+
 export const getWeeklyDataAllTests = async (req, res) => {
 try {
 const today = new Date();
