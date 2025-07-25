@@ -384,66 +384,59 @@ try {
 const inputDate = req.body.dateTime ? new Date(req.body.dateTime) : new Date();
 const pool = await poolPromise;
 
-// Prepare both dates
+// Date boundaries
 const currentDate = new Date(inputDate);
 const previousDate = new Date(inputDate);
 previousDate.setDate(previousDate.getDate() - 1);
 
-const procedures = [
-{ name: 'Functional', sp: 'SP_GetMeterCountPerHour_FunctionalTestDetails', param: 'CurrentDateTime' },
-{ name: 'Calibration', sp: 'SP_GetMeterCountPerHour_CalibrationTest', param: 'CurrentDateTime' },
-{ name: 'Accuracy', sp: 'SP_GetMeterCountPerHour_AccuracyTest', param: 'CurrentDateTime' },
-{ name: 'NIC', sp: 'SP_GetMeterCountPerHour_NICComTest', param: 'CurrentDateTime' },
-{ name: 'FinalTest', sp: 'SP_GetMeterCountPerHour_FinalTestDetails', param: 'CurrentDateTime' }
-];
-
-// Helper to process resultsets
-const processDataForDate = async (date) => {
-const results = {};
-const completedMap = {};
-
-for (const proc of procedures) {
+// Helper: Process stored procedure for a date
+const processDashboardSP = async (date) => {
 const response = await pool
 .request()
-.input(proc.param, date)
-.execute(proc.sp);
+.input('SelectedDate', date)
+.execute('SP_GetCountPerHour_DashboardResultDetails');
 
 const recordset = response.recordset || [];
-results[proc.name] = recordset;
+
+const completedMap = {}; // Format: { '06': { Functional: 12, Calibration: 8, ... } }
 
 recordset.forEach(item => {
-const { TimeSlot, Status, MeterCount } = item;
-const startHour = TimeSlot?.split('-')[0];
+const time = new Date(item.TimeStamp);
+const hour = time.getHours();
+const hourKey = String(hour).padStart(2, '0');
 
-if (!startHour || Status !== 'PASS') return;
-
-if (!completedMap[startHour]) completedMap[startHour] = {};
-if (!completedMap[startHour][proc.name]) completedMap[startHour][proc.name] = 0;
-
-completedMap[startHour][proc.name] += MeterCount || 0;
-});
-}
-
-return { results, completedMap };
+if (!completedMap[hourKey]) completedMap[hourKey] = {
+Functional: 0,
+Calibration: 0,
+Accuracy: 0,
+NIC: 0,
+FinalTest: 0
 };
 
-// Process both dates
-const currentDayData = await processDataForDate(currentDate);
-const previousDayData = await processDataForDate(previousDate);
+completedMap[hourKey].Functional += item.FunctionalTest_Pass || 0;
+completedMap[hourKey].Calibration += item.CalibrationTest_Pass || 0;
+completedMap[hourKey].Accuracy += item.AccuracyTest_Pass || 0;
+completedMap[hourKey].NIC += item.NICComTest_Pass || 0;
+completedMap[hourKey].FinalTest += item.FinalTest_Pass || 0;
+});
+
+return {
+fullData: recordset,
+completedPerHour: completedMap
+};
+};
+
+// Fetch for both days
+const currentDayData = await processDashboardSP(currentDate);
+const previousDayData = await processDashboardSP(previousDate);
 
 return res.status(200).json({
 success: true,
 currentDate: currentDate.toISOString().split('T')[0],
 previousDate: previousDate.toISOString().split('T')[0],
 data: {
-current: {
-fullData: currentDayData.results,
-completedPerHour: currentDayData.completedMap
-},
-previous: {
-fullData: previousDayData.results,
-completedPerHour: previousDayData.completedMap
-}
+current: currentDayData,
+previous: previousDayData
 }
 });
 
@@ -451,11 +444,12 @@ completedPerHour: previousDayData.completedMap
 console.error('Error in getHourlyDataAllTests:', error);
 return res.status(500).json({
 success: false,
-message: 'Error retrieving hourly data from stored procedures',
+message: 'Error retrieving hourly data from DashboardResultDetails',
 error: error.message
 });
 }
 };
+
 
 
 
