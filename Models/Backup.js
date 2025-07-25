@@ -274,58 +274,111 @@ error: error.message
 }
 };
 export const getWeeklyDataAllTests = async (req, res) => {
-try {
-const today = new Date();
+  try {
+    const today = new Date();
 
-// Get Sunday of current week
-const currentDay = today.getDay(); // 0 = Sunday
-const currentWeekStart = new Date(today);
-currentWeekStart.setDate(today.getDate() - currentDay);
+    // Get Sunday of current week
+    const currentDay = today.getDay(); // 0 = Sunday
+    const currentWeekStart = new Date(today);
+    currentWeekStart.setDate(today.getDate() - currentDay);
 
-// Get Sunday of previous week
-const previousWeekStart = new Date(currentWeekStart);
-previousWeekStart.setDate(currentWeekStart.getDate() - 7);
+    // Get Sunday of previous week
+    const previousWeekStart = new Date(currentWeekStart);
+    previousWeekStart.setDate(currentWeekStart.getDate() - 7);
 
-const pool = await poolPromise;
+    const pool = await poolPromise;
 
-const results = {
-currentWeek: [],
-previousWeek: []
+    const results = {
+      currentWeekRaw: [],
+      previousWeekRaw: [],
+      currentWeek: [],
+      previousWeek: []
+    };
+
+    // === Current Week Data
+    const currentResult = await pool
+      .request()
+      .input('InputDateTime', currentWeekStart)
+      .execute('SP_GetCountPerWeek_DashboardResultDetails');
+
+    results.currentWeekRaw = currentResult.recordset || [];
+
+    // === Previous Week Data
+    const previousResult = await pool
+      .request()
+      .input('InputDateTime', previousWeekStart)
+      .execute('SP_GetCountPerWeek_DashboardResultDetails');
+
+    results.previousWeekRaw = previousResult.recordset || [];
+
+    // === Normalize Weekly Data
+    const normalizeWeekRangeToDaily = (rawWeekData = []) => {
+      return rawWeekData.map((entry) => {
+        const dateMatch = entry.RecordDate?.split(' ')[0]?.replace(/-/g, '.');
+
+        const functional = (entry.FunctionalTest_Pass || 0) + (entry.FunctionalTest_Fail || 0);
+        const calibration = (entry.CalibrationTest_Pass || 0) + (entry.CalibrationTest_Fail || 0);
+        const accuracy = (entry.AccuracyTest_Pass || 0) + (entry.AccuracyTest_Fail || 0);
+        const niccom = (entry.NICComTest_Pass || 0) + (entry.NICComTest_Fail || 0);
+        const finalTest = (entry.FinalTest_Pass || 0) + (entry.FinalTest_Fail || 0);
+
+        const completed =
+          (entry.FunctionalTest_Pass || 0) +
+          (entry.CalibrationTest_Pass || 0) +
+          (entry.AccuracyTest_Pass || 0) +
+          (entry.NICComTest_Pass || 0) +
+          (entry.FinalTest_Pass || 0);
+
+        const fail =
+          (entry.FunctionalTest_Fail || 0) +
+          (entry.CalibrationTest_Fail || 0) +
+          (entry.AccuracyTest_Fail || 0) +
+          (entry.NICComTest_Fail || 0) +
+          (entry.FinalTest_Fail || 0);
+
+        const rework =
+          (entry.FunctionalTest_Rework || 0) +
+          (entry.CalibrationTest_Rework || 0) +
+          (entry.AccuracyTest_Rework || 0) +
+          (entry.NICComTest_Rework || 0) +
+          (entry.FinalTest_Rework || 0);
+
+        return {
+          date: dateMatch || '',
+          Functional: functional,
+          Calibration: calibration,
+          Accuracy: accuracy,
+          NICCom: niccom,
+          FinalTest: finalTest,
+          Completed: completed,
+          Fail: fail,
+          Rework: rework
+        };
+      });
+    };
+
+    results.currentWeek = normalizeWeekRangeToDaily(results.currentWeekRaw);
+    results.previousWeek = normalizeWeekRangeToDaily(results.previousWeekRaw);
+
+    return res.status(200).json({
+      success: true,
+      currentWeekStart: currentWeekStart.toISOString().split('T')[0],
+      previousWeekStart: previousWeekStart.toISOString().split('T')[0],
+      data: {
+        currentWeek: results.currentWeek,
+        previousWeek: results.previousWeek
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in getWeeklyDataAllTests:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error retrieving weekly data from stored procedure',
+      error: error.message
+    });
+  }
 };
-
-// === Current Week Data
-const currentResult = await pool
-.request()
-.input('InputDateTime', currentWeekStart)
-.execute('SP_GetCountPerWeek_DashboardResultDetails');
-
-results.currentWeek = currentResult.recordset || [];
-
-// === Previous Week Data
-const previousResult = await pool
-.request()
-.input('InputDateTime', previousWeekStart)
-.execute('SP_GetCountPerWeek_DashboardResultDetails');
-
-results.previousWeek = previousResult.recordset || [];
-
-return res.status(200).json({
-success: true,
-currentWeekStart: currentWeekStart.toISOString().split('T')[0],
-previousWeekStart: previousWeekStart.toISOString().split('T')[0],
-data: results
-});
-
-} catch (error) {
-console.error('Error in getWeeklyDataAllTests:', error);
-return res.status(500).json({
-success: false,
-message: 'Error retrieving weekly data from stored procedure',
-error: error.message
-});
-}
-};
-
 
 
 export const getHourlyDataAllTests = async (req, res) => {
