@@ -211,8 +211,6 @@ WHERE id = @id
 `);
 return result.recordset[0];
 };
-
-
 export const gettoday_yesterdayData = async (req, res) => {
 try {
 // Get today's and yesterday's dates
@@ -289,6 +287,8 @@ previousWeekStart.setDate(currentWeekStart.getDate() - 7);
 const pool = await poolPromise;
 
 const results = {
+currentWeekRaw: [],
+previousWeekRaw: [],
 currentWeek: [],
 previousWeek: []
 };
@@ -299,7 +299,7 @@ const currentResult = await pool
 .input('InputDateTime', currentWeekStart)
 .execute('SP_GetCountPerWeek_DashboardResultDetails');
 
-results.currentWeek = currentResult.recordset || [];
+results.currentWeekRaw = currentResult.recordset || [];
 
 // === Previous Week Data
 const previousResult = await pool
@@ -307,13 +307,65 @@ const previousResult = await pool
 .input('InputDateTime', previousWeekStart)
 .execute('SP_GetCountPerWeek_DashboardResultDetails');
 
-results.previousWeek = previousResult.recordset || [];
+results.previousWeekRaw = previousResult.recordset || [];
+
+// === Normalize Weekly Data
+const normalizeWeekRangeToDaily = (rawWeekData = []) => {
+return rawWeekData.map((entry) => {
+const dateMatch = entry.RecordDate?.split(' ')[0]?.replace(/-/g, '.');
+
+const functional = (entry.FunctionalTest_Pass || 0) + (entry.FunctionalTest_Fail || 0);
+const calibration = (entry.CalibrationTest_Pass || 0) + (entry.CalibrationTest_Fail || 0);
+const accuracy = (entry.AccuracyTest_Pass || 0) + (entry.AccuracyTest_Fail || 0);
+const niccom = (entry.NICComTest_Pass || 0) + (entry.NICComTest_Fail || 0);
+const finalTest = (entry.FinalTest_Pass || 0) + (entry.FinalTest_Fail || 0);
+
+const completed =
+(entry.FunctionalTest_Pass || 0) +
+(entry.CalibrationTest_Pass || 0) +
+(entry.AccuracyTest_Pass || 0) +
+(entry.NICComTest_Pass || 0) +
+(entry.FinalTest_Pass || 0);
+
+const fail =
+(entry.FunctionalTest_Fail || 0) +
+(entry.CalibrationTest_Fail || 0) +
+(entry.AccuracyTest_Fail || 0) +
+(entry.NICComTest_Fail || 0) +
+(entry.FinalTest_Fail || 0);
+
+const rework =
+(entry.FunctionalTest_Rework || 0) +
+(entry.CalibrationTest_Rework || 0) +
+(entry.AccuracyTest_Rework || 0) +
+(entry.NICComTest_Rework || 0) +
+(entry.FinalTest_Rework || 0);
+
+return {
+date: dateMatch || '',
+Functional: functional,
+Calibration: calibration,
+Accuracy: accuracy,
+NICCom: niccom,
+FinalTest: finalTest,
+Completed: completed,
+Fail: fail,
+Rework: rework
+};
+});
+};
+
+results.currentWeek = normalizeWeekRangeToDaily(results.currentWeekRaw);
+results.previousWeek = normalizeWeekRangeToDaily(results.previousWeekRaw);
 
 return res.status(200).json({
 success: true,
 currentWeekStart: currentWeekStart.toISOString().split('T')[0],
 previousWeekStart: previousWeekStart.toISOString().split('T')[0],
-data: results
+data: {
+currentWeek: results.currentWeek,
+previousWeek: results.previousWeek
+}
 });
 
 } catch (error) {
@@ -325,7 +377,6 @@ error: error.message
 });
 }
 };
-
 
 
 export const getHourlyDataAllTests = async (req, res) => {
