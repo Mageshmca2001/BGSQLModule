@@ -119,14 +119,14 @@ export const FunctionalSerialNumber = async () => {
 const pool = await poolPromise;
 const result = await pool
 .request()
-.query('SELECT * FROM finalparameters');
+.query('SELECT Top 100 * FROM FunctionalTestDetails');
 return result.recordset; // Return all records
 };
 export const CalibrationSerialNumber = async () => {
 const pool = await poolPromise;
 const result = await pool
 .request()
-.query('SELECT * FROM Calibration');
+.query('SELECT Top 100 *  FROM CalibrationTest');
 
 AccuracySerialNumber
 return result.recordset; // Return all records
@@ -135,7 +135,7 @@ export const AccuracySerialNumber = async () => {
 const pool = await poolPromise;
 const result = await pool
 .request()
-.query('SELECT * FROM AccuracyTest');
+.query('SELECT Top 100 * FROM AccuracyTest');
 
 
 return result.recordset; // Return all records
@@ -144,7 +144,7 @@ export const NICSerialNumber = async () => {
 const pool = await poolPromise;
 const result = await pool
 .request()
-.query('SELECT * FROM NICComTest');
+.query('SELECT Top 100 * FROM NICComTest');
 
 
 return result.recordset; // Return all records
@@ -275,209 +275,187 @@ error: error.message
 }
 };
 export const getWeeklyDataAllTests = async (req, res) => {
-  try {
-    const today = new Date();
+try {
+const today = new Date();
 
-    // Get Sunday of current week
-    const currentDay = today.getDay(); // 0 = Sunday
-    const currentWeekStart = new Date(today);
-    currentWeekStart.setDate(today.getDate() - currentDay);
+// Get Sunday of current week
+const currentDay = today.getDay(); // 0 = Sunday
+const currentWeekStart = new Date(today);
+currentWeekStart.setDate(today.getDate() - currentDay);
 
-    // Get Sunday of previous week
-    const previousWeekStart = new Date(currentWeekStart);
-    previousWeekStart.setDate(currentWeekStart.getDate() - 7);
+// Get Sunday of previous week
+const previousWeekStart = new Date(currentWeekStart);
+previousWeekStart.setDate(currentWeekStart.getDate() - 7);
 
-    const pool = await poolPromise;
+const pool = await poolPromise;
 
-    const results = {
-      currentWeekRaw: [],
-      previousWeekRaw: [],
-      currentWeek: [],
-      previousWeek: []
-    };
-
-    // === Current Week Data
-    const currentResult = await pool
-      .request()
-      .input('InputDateTime', currentWeekStart)
-      .execute('SP_GetCountPerWeek_DashboardResultDetails');
-
-    results.currentWeekRaw = currentResult.recordset || [];
-
-    // === Previous Week Data
-    const previousResult = await pool
-      .request()
-      .input('InputDateTime', previousWeekStart)
-      .execute('SP_GetCountPerWeek_DashboardResultDetails');
-
-    results.previousWeekRaw = previousResult.recordset || [];
-
-    // === Normalize Weekly Data
-    const normalizeWeekRangeToDaily = (rawWeekData = []) => {
-      return rawWeekData.map((entry) => {
-        // Convert RecordDate "dd-MM-yyyy to dd-MM-yyyy" → take first date and format as dd.MM.yyyy
-        const firstDateStr = entry.RecordDate?.split('to')[0]?.trim()?.replace(/-/g, '.');
-
-        const computeTested = (test) => {
-          const pass = entry[`${test}_Pass`] || 0;
-          const fail = entry[`${test}_Fail`] || 0;
-          const rework = entry[`${test}_Rework`] || 0;
-          return rework === 0 ? pass + fail : pass + fail - rework;
-        };
-
-        const Functional = computeTested('FunctionalTest');
-        const Calibration = computeTested('CalibrationTest');
-        const Accuracy = computeTested('AccuracyTest');
-        const NICCom = computeTested('NICComTest');
-        const FinalTest = computeTested('FinalTest');
-
-        const finalPass = entry.FinalTest_Pass || 0;
-        const finalFail = entry.FinalTest_Fail || 0;
-        const finalRework = entry.FinalTest_Rework || 0;
-        const Completed = finalRework === 0 ? finalPass + finalFail : finalPass + finalFail - finalRework;
-
-        const Rework =
-          (entry.FunctionalTest_Rework || 0) +
-          (entry.CalibrationTest_Rework || 0) +
-          (entry.AccuracyTest_Rework || 0) +
-          (entry.NICComTest_Rework || 0) +
-          finalRework;
-
-        return {
-          date: firstDateStr || '',
-          Functional,
-          Calibration,
-          Accuracy,
-          NICCom,
-          FinalTest,
-          Completed,
-          Rework
-        };
-      });
-    };
-
-    results.currentWeek = normalizeWeekRangeToDaily(results.currentWeekRaw);
-    results.previousWeek = normalizeWeekRangeToDaily(results.previousWeekRaw);
-
-    return res.status(200).json({
-      success: true,
-      currentWeekStart: currentWeekStart.toISOString().split('T')[0],
-      previousWeekStart: previousWeekStart.toISOString().split('T')[0],
-      data: {
-        currentWeek: results.currentWeek,
-        previousWeek: results.previousWeek
-      }
-    });
-
-  } catch (error) {
-    console.error('Error in getWeeklyDataAllTests:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error retrieving weekly data from stored procedure',
-      error: error.message
-    });
-  }
+const results = {
+currentWeekRaw: [],
+previousWeekRaw: [],
+currentWeek: [],
+previousWeek: []
 };
 
+// === Current Week Data
+const currentResult = await pool
+.request()
+.input('InputDateTime', currentWeekStart)
+.execute('SP_GetCountPerWeek_DashboardResultDetails');
 
+results.currentWeekRaw = currentResult.recordset || [];
+
+// === Previous Week Data
+const previousResult = await pool
+.request()
+.input('InputDateTime', previousWeekStart)
+.execute('SP_GetCountPerWeek_DashboardResultDetails');
+
+results.previousWeekRaw = previousResult.recordset || [];
+
+// === Normalize Weekly Data
+const normalizeWeekRangeToDaily = (rawWeekData = []) => {
+return rawWeekData.map((entry) => {
+  // Convert RecordDate "dd-MM-yyyy to dd-MM-yyyy" → take first date and format as dd.MM.yyyy
+  const firstDateStr = entry.RecordDate?.split('to')[0]?.trim()?.replace(/-/g, '.');
+
+  const computeTested = (test) => {
+    const pass = entry[`${test}_Pass`] || 0;
+    const fail = entry[`${test}_Fail`] || 0;
+    const rework = entry[`${test}_Rework`] || 0;
+    return rework === 0 ? pass + fail : pass + fail - rework;
+  };
+
+  const Functional = computeTested('FunctionalTest');
+  const Calibration = computeTested('CalibrationTest');
+  const Accuracy = computeTested('AccuracyTest');
+  const NICCom = computeTested('NICComTest');
+  const FinalTest = computeTested('FinalTest');
+
+  const finalPass = entry.FinalTest_Pass || 0;
+  const finalFail = entry.FinalTest_Fail || 0;
+  const finalRework = entry.FinalTest_Rework || 0;
+  const Completed = finalRework === 0 ? finalPass + finalFail : finalPass + finalFail - finalRework;
+
+  const Rework =
+    (entry.FunctionalTest_Rework || 0) +
+    (entry.CalibrationTest_Rework || 0) +
+    (entry.AccuracyTest_Rework || 0) +
+    (entry.NICComTest_Rework || 0) +
+    finalRework;
+
+  return {
+date: firstDateStr || '',
+Functional,
+Calibration,
+Accuracy,
+NICCom,
+FinalTest,
+Completed,
+Rework,
+FinalTest_Fail: entry.FinalTest_Fail || 0 // ✅ Add this line
+};
+
+});
+};
+
+results.currentWeek = normalizeWeekRangeToDaily(results.currentWeekRaw);
+results.previousWeek = normalizeWeekRangeToDaily(results.previousWeekRaw);
+
+return res.status(200).json({
+success: true,
+currentWeekStart: currentWeekStart.toISOString().split('T')[0],
+previousWeekStart: previousWeekStart.toISOString().split('T')[0],
+data: {
+  currentWeek: results.currentWeek,
+  previousWeek: results.previousWeek
+}
+});
+
+} catch (error) {
+console.error('Error in getWeeklyDataAllTests:', error);
+return res.status(500).json({
+success: false,
+message: 'Error retrieving weekly data from stored procedure',
+error: error.message
+});
+}
+};
 export const getHourlyDataAllTests = async (req, res) => {
-  try {
-    const inputDate = req.body.dateTime ? new Date(req.body.dateTime) : new Date();
-    const pool = await poolPromise;
+try {
+const inputDate = req.body.dateTime ? new Date(req.body.dateTime) : new Date();
+const pool = await poolPromise;
 
-    const currentDate = new Date(inputDate);
-    const previousDate = new Date(inputDate);
-    previousDate.setDate(previousDate.getDate() - 1);
+const currentDate = new Date(inputDate);
+const previousDate = new Date(inputDate);
+previousDate.setDate(previousDate.getDate() - 1);
 
-    const fetchAndProcessData = async (date) => {
-      const response = await pool
-        .request()
-        .input('SelectedDate', date)
-        .execute('SP_GetCountPerHour_DashboardResultDetails');
+const fetchAndProcessData = async (date) => {
+const response = await pool
+.request()
+.input('SelectedDate', date)
+.execute('SP_GetCountPerHour_DashboardResultDetails');
 
-      const recordset = response.recordset || [];
-      const completedMap = {};
-      const fullData = [];
+const recordset = response.recordset || [];
+const completedMap = {};
+const fullData = [];
 
-      recordset.forEach(row => {
-        const timeSlot = row.TimeSlot;
-        if (!timeSlot) return;
+recordset.forEach(row => {
+const timeSlot = row.TimeSlot;
+if (!timeSlot) return;
 
-        fullData.push(row); // Optional: Keep full data for frontend use
+fullData.push(row); // Optional: Keep full data for frontend use
 
-        const hour = timeSlot.split('-')[0];
-        if (!completedMap[hour]) completedMap[hour] = {};
+const hour = timeSlot.split('-')[0];
+if (!completedMap[hour]) completedMap[hour] = {};
 
-        const calculateCompleted = (pass, fail, rework) =>
-          (pass || 0) + (fail || 0) - (rework || 0);
+const calculateCompleted = (pass, fail, rework) =>
+(pass || 0) + (fail || 0) - (rework || 0);
 
-        // Only FinalTest considered completed (you can adjust logic if needed)
-        completedMap[hour]['FinalTest'] = calculateCompleted(
-          row.FinalTest_Pass,
-          row.FinalTest_Fail,
-          row.FinalTest_Rework
-        );
+// Only FinalTest considered completed (you can adjust logic if needed)
+completedMap[hour]['FinalTest'] = calculateCompleted(
+row.FinalTest_Pass,
+row.FinalTest_Fail,
+row.FinalTest_Rework
+);
 
-        // Optional: Include other test types
-        completedMap[hour]['Functional'] = (row.FunctionalTest_Pass || 0);
-        completedMap[hour]['Calibration'] = (row.CalibrationTest_Pass || 0);
-        completedMap[hour]['Accuracy'] = (row.AccuracyTest_Pass || 0);
-        completedMap[hour]['NIC'] = (row.NICComTest_Pass || 0);
-      });
+// Optional: Include other test types
+completedMap[hour]['Functional'] = (row.FunctionalTest_Pass || 0);
+completedMap[hour]['Calibration'] = (row.CalibrationTest_Pass || 0);
+completedMap[hour]['Accuracy'] = (row.AccuracyTest_Pass || 0);
+completedMap[hour]['NIC'] = (row.NICComTest_Pass || 0);
+});
 
-      return { fullData, completedMap };
-    };
-
-    const currentDayData = await fetchAndProcessData(currentDate);
-    const previousDayData = await fetchAndProcessData(previousDate);
-
-    return res.status(200).json({
-      success: true,
-      currentDate: currentDate.toISOString().split('T')[0],
-      previousDate: previousDate.toISOString().split('T')[0],
-      data: {
-        current: {
-          fullData: currentDayData.fullData,
-          completedPerHour: currentDayData.completedMap
-        },
-        previous: {
-          fullData: previousDayData.fullData,
-          completedPerHour: previousDayData.completedMap
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Error in getHourlyDataAllTests:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error retrieving hourly data from stored procedure',
-      error: error.message
-    });
-  }
+return { fullData, completedMap };
 };
 
+const currentDayData = await fetchAndProcessData(currentDate);
+const previousDayData = await fetchAndProcessData(previousDate);
 
+return res.status(200).json({
+success: true,
+currentDate: currentDate.toISOString().split('T')[0],
+previousDate: previousDate.toISOString().split('T')[0],
+data: {
+current: {
+fullData: currentDayData.fullData,
+completedPerHour: currentDayData.completedMap
+},
+previous: {
+fullData: previousDayData.fullData,
+completedPerHour: previousDayData.completedMap
+}
+}
+});
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+} catch (error) {
+console.error('Error in getHourlyDataAllTests:', error);
+return res.status(500).json({
+success: false,
+message: 'Error retrieving hourly data from stored procedure',
+error: error.message
+});
+}
+};
 // ✅ Get all table names from the database
 export const getAllTableNames = async () => {
 const pool = await poolPromise;
@@ -488,7 +466,6 @@ WHERE TABLE_TYPE = 'BASE TABLE'
 `);
 return result.recordset.map(row => row.TABLE_NAME); // ✅ Just return the data
 };
-
 // ✅ Get all rows from a selected table (safe version)
 export const getTableData = async (tableName, fromDate, toDate) => {
 const pool = await poolPromise;
@@ -518,8 +495,9 @@ return [];
 const query = `
 SELECT * FROM [${sanitized}]
 WHERE CAST([${filterColumn}] AS DATE)
-BETWEEN CAST(@fromDate AS DATE) AND CAST(@toDate AS DATE)
+BETWEEN CAST(@fromDate AS DATE) AND CAST(@toDate AS DATE) Order by [${filterColumn}] ASC
 `;
+console.log(`query: ${toDate}`); // ✅ Debugging log
 
 const result = await pool
 .request()
