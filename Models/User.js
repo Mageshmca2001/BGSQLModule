@@ -456,6 +456,148 @@ error: error.message
 });
 }
 };
+
+
+export const getDailyShiftData = async (req, res) => {
+try {
+const inputDate = req.body.dateTime;
+
+if (!inputDate) {
+return res.status(400).json({
+success: false,
+message: '❗ Missing date input',
+});
+}
+
+const parsedDate = new Date(inputDate);
+if (isNaN(parsedDate)) {
+return res.status(400).json({
+success: false,
+message: '❗ Invalid date format. Use YYYY-MM-DD',
+});
+}
+
+const formattedDate = parsedDate.toISOString().split('T')[0];
+
+const pool = await poolPromise;
+
+const result = await pool
+.request()
+.input('InputDateTime', formattedDate)
+.execute('SP_GetCountPerDay_DashboardResultDetails');
+
+return res.status(200).json({
+success: true,
+date: formattedDate,
+data: {
+ShiftWiseSummary: result.recordset || [],
+},
+});
+} catch (error) {
+console.error('❌ Error in getDailyShiftData:', error);
+return res.status(500).json({
+success: false,
+message: 'Error retrieving data for the selected day',
+error: error.message,
+});
+}
+};
+export const getDailyHourlyData = async (req, res) => {
+try {
+const inputDate = req.body.dateTime;
+
+if (!inputDate) {
+return res.status(400).json({
+success: false,
+message: '❗ Missing date input',
+});
+}
+
+const parsedDate = new Date(inputDate);
+if (isNaN(parsedDate)) {
+return res.status(400).json({
+success: false,
+message: '❗ Invalid date format. Use YYYY-MM-DD',
+});
+}
+
+const currentDate = new Date(parsedDate);
+const previousDate = new Date(parsedDate);
+previousDate.setDate(previousDate.getDate() - 1);
+
+const pool = await poolPromise;
+
+const fetchAndProcessData = async (date) => {
+const result = await pool
+.request()
+.input('SelectedDate', date)
+.execute('SP_GetCountPerHour_DashboardResultDetails');
+
+const recordset = result.recordset || [];
+const fullData = [];
+const completedMap = {};
+
+recordset.forEach((row) => {
+const timeSlot = row.TimeSlot;
+if (!timeSlot) return;
+
+fullData.push(row); // Keep full raw entry
+
+const hour = timeSlot.split('-')[0];
+if (!completedMap[hour]) completedMap[hour] = {};
+
+const calculateCompleted = (pass, fail, rework) =>
+(pass || 0) + (fail || 0) - (rework || 0);
+
+completedMap[hour]['FinalTest'] = calculateCompleted(
+row.FinalTest_Pass,
+row.FinalTest_Fail,
+row.FinalTest_Rework
+);
+
+completedMap[hour]['Functional'] = row.FunctionalTest_Pass || 0;
+completedMap[hour]['Calibration'] = row.CalibrationTest_Pass || 0;
+completedMap[hour]['Accuracy'] = row.AccuracyTest_Pass || 0;
+completedMap[hour]['NIC'] = row.NICComTest_Pass || 0;
+});
+
+return { fullData, completedMap };
+};
+
+const currentDayData = await fetchAndProcessData(currentDate);
+const previousDayData = await fetchAndProcessData(previousDate);
+
+return res.status(200).json({
+success: true,
+message: '✅ Hourly test data fetched successfully',
+date: {
+current: currentDate.toISOString().split('T')[0],
+previous: previousDate.toISOString().split('T')[0],
+},
+data: {
+current: {
+fullData: currentDayData.fullData,
+completedPerHour: currentDayData.completedMap,
+},
+previous: {
+fullData: previousDayData.fullData,
+completedPerHour: previousDayData.completedMap,
+},
+},
+});
+} catch (error) {
+console.error('❌ Error in getHourlyDataAllTests:', error);
+return res.status(500).json({
+success: false,
+message: '❌ Error retrieving hourly data from stored procedure',
+error: error.message,
+});
+}
+};
+
+
+
+
 // ✅ Get all table names from the database
 export const getAllTableNames = async () => {
 const pool = await poolPromise;

@@ -34,6 +34,10 @@ userRouter.get('/hourly',users.gethourlyprogress);
 userRouter.get('/tables', users.fetchTableList);
 userRouter.get('/tables/:tableName',users.fetchTableData)
 
+//{*Daily Shift Data}
+userRouter.post('/shift', users.getshiftwise);
+userRouter.post('/hourlydata', users.getDailyhour);
+
 userRouter.get('/protected', verifyToken, (req, res) => {
 res.status(200).json({ message: 'Access granted', user: req.user });
 });
