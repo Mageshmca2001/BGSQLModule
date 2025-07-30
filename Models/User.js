@@ -315,15 +315,15 @@ results.previousWeekRaw = previousResult.recordset || [];
 // === Normalize Weekly Data
 const normalizeWeekRangeToDaily = (rawWeekData = []) => {
 return rawWeekData.map((entry) => {
-  // Convert RecordDate "dd-MM-yyyy to dd-MM-yyyy" → take first date and format as dd.MM.yyyy
-  const firstDateStr = entry.RecordDate?.split('to')[0]?.trim()?.replace(/-/g, '.');
+// Convert RecordDate "dd-MM-yyyy to dd-MM-yyyy" → take first date and format as dd.MM.yyyy
+const firstDateStr = entry.RecordDate?.split('to')[0]?.trim()?.replace(/-/g, '.');
 
-  const computeTested = (test) => {
-    const pass = entry[`${test}_Pass`] || 0;
-    const fail = entry[`${test}_Fail`] || 0;
-    const rework = entry[`${test}_Rework`] || 0;
-    return rework === 0 ? pass + fail : pass + fail - rework;
-  };
+const computeTested = (test) => {
+const pass = entry[`${test}_Pass`] || 0;
+const fail = entry[`${test}_Fail`] || 0;
+const rework = entry[`${test}_Rework`] || 0;
+return rework === 0 ? pass + fail : pass + fail - rework;
+};
 
   const Functional = computeTested('FunctionalTest');
   const Calibration = computeTested('CalibrationTest');
@@ -336,12 +336,12 @@ return rawWeekData.map((entry) => {
   const finalRework = entry.FinalTest_Rework || 0;
   const Completed = finalRework === 0 ? finalPass + finalFail : finalPass + finalFail - finalRework;
 
-  const Rework =
-    (entry.FunctionalTest_Rework || 0) +
-    (entry.CalibrationTest_Rework || 0) +
-    (entry.AccuracyTest_Rework || 0) +
-    (entry.NICComTest_Rework || 0) +
-    finalRework;
+const Rework =
+(entry.FunctionalTest_Rework || 0) +
+(entry.CalibrationTest_Rework || 0) +
+(entry.AccuracyTest_Rework || 0) +
+(entry.NICComTest_Rework || 0) +
+finalRework;
 
   return {
 date: firstDateStr || '',
@@ -594,6 +594,70 @@ error: error.message,
 });
 }
 };
+export const getMonthlyDataAllTests = async (req, res) => {
+try {
+const { monthName, year } = req.body;   // ✅ use req.body for POST
+
+if (!monthName || !year) {
+return res.status(400).json({
+success: false,
+message: 'Month name and Year are required (e.g. {monthName: "July", year: 2025})',
+});
+}
+
+const pool = await poolPromise;
+
+// ✅ remove InputYear if your SP doesn't support it
+const result = await pool
+.request()
+.input('InputMonthName', monthName)
+//.input('InputYear', parseInt(year, 10))  // ✅ comment out if SP doesn't accept year
+.execute('SP_GetCountPerMonth_DashboardResultDetails');
+
+const rawData = result.recordset || [];
+if (!rawData.length) {
+return res.status(200).json({ success: true, data: [] });
+}
+
+// ✅ normalization remains same
+const normalizedData = rawData.map(entry => {
+const date = entry.RecordDate?.split('to')[0]?.trim()?.replace(/-/g, '.');
+const computeTested = (test) => {
+const pass = entry[`${test}_Pass`] || 0;
+const fail = entry[`${test}_Fail`] || 0;
+const rework = entry[`${test}_Rework`] || 0;
+return rework === 0 ? pass + fail : pass + fail - rework;
+};
+
+return {
+date: date || '',
+Functional: computeTested('FunctionalTest'),
+Calibration: computeTested('CalibrationTest'),
+Accuracy: computeTested('AccuracyTest'),
+NICCom: computeTested('NICComTest'),
+FinalTest: computeTested('FinalTest'),
+Completed: (entry.FinalTest_Pass || 0) + (entry.FinalTest_Fail || 0) - (entry.FinalTest_Rework || 0),
+Rework: (entry.FunctionalTest_Rework || 0) + (entry.CalibrationTest_Rework || 0) +
+(entry.AccuracyTest_Rework || 0) + (entry.NICComTest_Rework || 0) +
+(entry.FinalTest_Rework || 0),
+FinalTest_Fail: entry.FinalTest_Fail || 0
+};
+});
+
+return res.status(200).json({ success: true, data: normalizedData });
+
+} catch (error) {
+console.error('Error in getMonthlyDataAllTests:', error);
+return res.status(500).json({
+success: false,
+message: 'Internal Server Error',
+error: error.message,
+stack: error.stack
+});
+}
+};
+
+
 
 
 
