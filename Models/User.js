@@ -655,91 +655,91 @@ stack: error.stack
 }
 };
 export const getPeriodicDataAllTests = async (req, res) => {
-  try {
-    const { startDate, endDate } = req.body;
+try {
+const { startDate, endDate } = req.body;
 
-    // 🔒 Input Validation
-    if (!startDate || !endDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Both startDate and endDate are required. Format: YYYY-MM-DD',
-      });
-    }
+// 🔒 Input Validation
+if (!startDate || !endDate) {
+return res.status(400).json({
+success: false,
+message: 'Both startDate and endDate are required. Format: YYYY-MM-DD',
+});
+}
 
-    const pool = await poolPromise;
+const pool = await poolPromise;
 
-    const result = await pool
-      .request()
-      .input('StartDate', startDate)
-      .input('EndDate', endDate)
-      .execute('SP_GetCountPeriodic_DashboardResultDetails');
+const result = await pool
+.request()
+.input('StartDate', startDate)
+.input('EndDate', endDate)
+.execute('SP_GetCountPeriodic_DashboardResultDetails');
 
-    const rawData = result.recordset || [];
+const rawData = result.recordset || [];
 
-    if (!rawData.length) {
-      return res.status(200).json({ success: true, data: [] });
-    }
+if (!rawData.length) {
+return res.status(200).json({ success: true, data: [] });
+}
 
-    // 🛠 Normalize + Filter by actual date
-    const normalizedData = rawData
-      .map((entry) => {
-        const recordRange = entry.RecordDate; // Example: "01-08-2025 to 02-08-2025"
-        const startDateStr = recordRange?.split('to')[0]?.trim(); // "01-08-2025"
+// 🛠 Normalize + Filter by actual date
+const normalizedData = rawData
+.map((entry) => {
+const recordRange = entry.RecordDate; // Example: "01-08-2025 to 02-08-2025"
+const startDateStr = recordRange?.split('to')[0]?.trim(); // "01-08-2025"
 
-        if (!startDateStr) return null;
+if (!startDateStr) return null;
 
-        const [dd, mm, yyyy] = startDateStr.split('-');
-        const parsedDate = new Date(`${yyyy}-${mm}-${dd}`); // "2025-08-01"
+const [dd, mm, yyyy] = startDateStr.split('-');
+const parsedDate = new Date(`${yyyy}-${mm}-${dd}`); // "2025-08-01"
 
-        // ✅ Compare parsed date with range
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
+// ✅ Compare parsed date with range
+const start = new Date(startDate);
+const end = new Date(endDate);
+start.setHours(0, 0, 0, 0);
+end.setHours(23, 59, 59, 999);
 
-        if (isNaN(parsedDate) || parsedDate < start || parsedDate > end) {
-          return null; // ❌ Skip entries outside range
-        }
+if (isNaN(parsedDate) || parsedDate < start || parsedDate > end) {
+return null; // ❌ Skip entries outside range
+}
 
-        const computeTested = (test) => {
-          const pass = entry[`${test}_Pass`] || 0;
-          const fail = entry[`${test}_Fail`] || 0;
-          const rework = entry[`${test}_Rework`] || 0;
-          return rework === 0 ? pass + fail : pass + fail - rework;
-        };
+const computeTested = (test) => {
+const pass = entry[`${test}_Pass`] || 0;
+const fail = entry[`${test}_Fail`] || 0;
+const rework = entry[`${test}_Rework`] || 0;
+return rework === 0 ? pass + fail : pass + fail - rework;
+};
 
-        return {
-          date: `${dd}.${mm}.${yyyy}`, // Output in DD.MM.YYYY format
-          Functional: computeTested('FunctionalTest'),
-          Calibration: computeTested('CalibrationTest'),
-          Accuracy: computeTested('AccuracyTest'),
-          NICCom: computeTested('NICComTest'),
-          FinalTest: computeTested('FinalTest'),
-          Completed:
-            (entry.FinalTest_Pass || 0) +
-            (entry.FinalTest_Fail || 0) -
-            (entry.FinalTest_Rework || 0),
-          Rework:
-            (entry.FunctionalTest_Rework || 0) +
-            (entry.CalibrationTest_Rework || 0) +
-            (entry.AccuracyTest_Rework || 0) +
-            (entry.NICComTest_Rework || 0) +
-            (entry.FinalTest_Rework || 0),
-          FinalTest_Fail: entry.FinalTest_Fail || 0
-        };
-      })
-      .filter((item) => item !== null); // ✅ Remove invalid/out-of-range entries
+return {
+date: `${dd}.${mm}.${yyyy}`, // Output in DD.MM.YYYY format
+Functional: computeTested('FunctionalTest'),
+Calibration: computeTested('CalibrationTest'),
+Accuracy: computeTested('AccuracyTest'),
+NICCom: computeTested('NICComTest'),
+FinalTest: computeTested('FinalTest'),
+Completed:
+(entry.FinalTest_Pass || 0) +
+(entry.FinalTest_Fail || 0) -
+(entry.FinalTest_Rework || 0),
+Rework:
+(entry.FunctionalTest_Rework || 0) +
+(entry.CalibrationTest_Rework || 0) +
+(entry.AccuracyTest_Rework || 0) +
+(entry.NICComTest_Rework || 0) +
+(entry.FinalTest_Rework || 0),
+FinalTest_Fail: entry.FinalTest_Fail || 0
+};
+})
+.filter((item) => item !== null); // ✅ Remove invalid/out-of-range entries
 
-    return res.status(200).json({ success: true, data: normalizedData });
-  } catch (error) {
-    console.error('❌ Error in getPeriodicDataAllTests:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal Server Error',
-      error: error.message,
-      stack: error.stack,
-    });
-  }
+return res.status(200).json({ success: true, data: normalizedData });
+} catch (error) {
+console.error('❌ Error in getPeriodicDataAllTests:', error);
+return res.status(500).json({
+success: false,
+message: 'Internal Server Error',
+error: error.message,
+stack: error.stack,
+});
+}
 };
 
 
