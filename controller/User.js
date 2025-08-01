@@ -1,5 +1,5 @@
 
-import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests,getHourlyDataAllTests,getAllTableNames,getTableData,getDailyShiftData,getDailyHourlyData,getMonthlyDataAllTests} from '../Models/User.js'
+import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests,getHourlyDataAllTests,getAllTableNames,getTableData,getDailyShiftData,getDailyHourlyData,getMonthlyDataAllTests,getPeriodicDataAllTests} from '../Models/User.js'
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 
@@ -347,7 +347,19 @@ error: err.message,
 }
 };
 
+export const getperiodic= async (req, res) => {
+try {
+await getPeriodicDataAllTests(req, res);
+} catch (err) {
+console.error('❌ Error in getDailyhour:', err);
+res.status(500).json({
+success: false,
+message: 'Error retrieving counts',
+error: err.message,
+});
+}
+};
 
-const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount,getpresentAndweekCount,gethourlyprogress,fetchTableList,fetchTableData,getshiftwise,getDailyhour,getMonth}; 
+const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount,getpresentAndweekCount,gethourlyprogress,fetchTableList,fetchTableData,getshiftwise,getDailyhour,getMonth,getperiodic}; 
 
 export default users;

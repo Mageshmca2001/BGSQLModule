@@ -38,6 +38,7 @@ userRouter.get('/tables/:tableName',users.fetchTableData)
 userRouter.post('/shift', users.getshiftwise);
 userRouter.post('/hourlydata', users.getDailyhour);
 userRouter.post('/month',users.getMonth)
+userRouter.post('/periodic',users.getperiodic);
 
 userRouter.get('/protected', verifyToken, (req, res) => {
 res.status(200).json({ message: 'Access granted', user: req.user });
