@@ -216,61 +216,78 @@ return result.recordset[0];
 };
 export const gettoday_yesterdayData = async (req, res) => {
 try {
-// Get today's and yesterday's dates
 const today = new Date();
 const yesterday = new Date(today);
 yesterday.setDate(today.getDate() - 1);
 
-// Format dates as 'YYYY-MM-DD'
 const formatDate = (date) => date.toISOString().split('T')[0];
 const todayStr = formatDate(today);
 const yesterdayStr = formatDate(yesterday);
 
-// List of stored procedures to call
 const procedures = [
-{ name: 'ShiftWiseSummary', sp: 'SP_GetCountPerDay_DashboardResultDetails' }, // new shift-wise SP
+{
+name: 'ShiftWiseSummary',
+sp: 'SP_GetCountPerDay_DashboardResultDetails',
+paramName: 'InputDateTime',
+},
+{
+name: 'ShiftReworkSummary',
+sp: 'SP_GetReworkCountPerDay',
+paramName: 'InputDate',
+},
 ];
 
 const pool = await poolPromise;
 
-// Final structure
 const results = {
 today: {},
-yesterday: {}
+yesterday: {},
 };
 
 for (const proc of procedures) {
-// === Get today's data
-const todayResult = await pool
-.request()
-.input('InputDateTime', todayStr)
-.execute(proc.sp);
+// === Today's data
+const todayRequest = pool.request();
+todayRequest.input(proc.paramName, todayStr);
+const todayResult = await todayRequest.execute(proc.sp);
 
-// === Get yesterday's data
-const yesterdayResult = await pool
-.request()
-.input('InputDateTime', yesterdayStr)
-.execute(proc.sp);
+// === Yesterday's data
+const yesterdayRequest = pool.request();
+yesterdayRequest.input(proc.paramName, yesterdayStr);
+const yesterdayResult = await yesterdayRequest.execute(proc.sp);
 
-// Store results by name
-results.today[proc.name] = todayResult.recordset || [];
-results.yesterday[proc.name] = yesterdayResult.recordset || [];
+// Handle multiple resultsets (only for ShiftWiseSummary)
+const todayData =
+proc.name === 'ShiftWiseSummary'
+? {
+shiftData: todayResult.recordsets[0] || [],
+onlyPassData: todayResult.recordsets[1]?.[0] || {},
+}
+: todayResult.recordset || [];
+
+const yesterdayData =
+proc.name === 'ShiftWiseSummary'
+? {
+shiftData: yesterdayResult.recordsets[0] || [],
+onlyPassData: yesterdayResult.recordsets[1]?.[0] || {},
+}
+: yesterdayResult.recordset || [];
+
+results.today[proc.name] = todayData;
+results.yesterday[proc.name] = yesterdayData;
 }
 
-// Return final response
 return res.status(200).json({
 success: true,
 today: todayStr,
 yesterday: yesterdayStr,
-data: results
+data: results,
 });
-
 } catch (error) {
 console.error('Error in gettoday_yesterdayData:', error);
 return res.status(500).json({
 success: false,
 message: 'Error retrieving data from stored procedures',
-error: error.message
+error: error.message,
 });
 }
 };
@@ -278,73 +295,76 @@ export const getWeeklyDataAllTests = async (req, res) => {
 try {
 const today = new Date();
 
-// Get Sunday of current week
-const currentDay = today.getDay(); // 0 = Sunday
+// Step 1: Compute Sunday (start of week) for current and previous week
+const dayOfWeek = today.getDay(); // Sunday = 0
 const currentWeekStart = new Date(today);
-currentWeekStart.setDate(today.getDate() - currentDay);
+currentWeekStart.setDate(today.getDate() - dayOfWeek); // Go to last Sunday
 
-// Get Sunday of previous week
 const previousWeekStart = new Date(currentWeekStart);
-previousWeekStart.setDate(currentWeekStart.getDate() - 7);
+previousWeekStart.setDate(currentWeekStart.getDate() - 7); // Previous Sunday
 
 const pool = await poolPromise;
 
-const results = {
-currentWeekRaw: [],
-previousWeekRaw: [],
-currentWeek: [],
-previousWeek: []
-};
+// Step 2: Execute both stored procedures for both weeks
+const [
+currentMainResult,
+previousMainResult,
+currentReworkResult,
+previousReworkResult
+] = await Promise.all([
+pool.request().input('InputDateTime', currentWeekStart).execute('SP_GetCountPerWeek_DashboardResultDetails'),
+pool.request().input('InputDateTime', previousWeekStart).execute('SP_GetCountPerWeek_DashboardResultDetails'),
+pool.request().input('InputDate', currentWeekStart).execute('SP_GetReworkCountPerWeek'),
+pool.request().input('InputDate', previousWeekStart).execute('SP_GetReworkCountPerWeek')
+]);
 
-// === Current Week Data
-const currentResult = await pool
-.request()
-.input('InputDateTime', currentWeekStart)
-.execute('SP_GetCountPerWeek_DashboardResultDetails');
+const normalizeWeekRangeToDaily = (mainData = [], reworkData = []) => {
+const reworkMap = {};
 
-results.currentWeekRaw = currentResult.recordset || [];
+reworkData.forEach(entry => {
+const dateKey = entry.DateRange?.split('to')[0]?.trim()?.replace(/-/g, '.');
+reworkMap[dateKey] = entry;
+});
 
-// === Previous Week Data
-const previousResult = await pool
-.request()
-.input('InputDateTime', previousWeekStart)
-.execute('SP_GetCountPerWeek_DashboardResultDetails');
-
-results.previousWeekRaw = previousResult.recordset || [];
-
-// === Normalize Weekly Data
-const normalizeWeekRangeToDaily = (rawWeekData = []) => {
-return rawWeekData.map((entry) => {
-// Convert RecordDate "dd-MM-yyyy to dd-MM-yyyy" → take first date and format as dd.MM.yyyy
-const firstDateStr = entry.RecordDate?.split('to')[0]?.trim()?.replace(/-/g, '.');
+return mainData.map(entry => {
+const dateKey = entry.RecordDate?.split('to')[0]?.trim()?.replace(/-/g, '.');
+const rework = reworkMap[dateKey] || {};
 
 const computeTested = (test) => {
 const pass = entry[`${test}_Pass`] || 0;
 const fail = entry[`${test}_Fail`] || 0;
-const rework = entry[`${test}_Rework`] || 0;
-return rework === 0 ? pass + fail : pass + fail - rework;
+const reworkCount = rework[`${test}_Rework`] || 0;
+return reworkCount === 0 ? pass + fail : pass + fail - reworkCount;
 };
 
-  const Functional = computeTested('FunctionalTest');
-  const Calibration = computeTested('CalibrationTest');
-  const Accuracy = computeTested('AccuracyTest');
-  const NICCom = computeTested('NICComTest');
-  const FinalTest = computeTested('FinalTest');
+const Functional = computeTested('FunctionalTest');
+const Calibration = computeTested('CalibrationTest');
+const Accuracy = computeTested('AccuracyTest');
+const NICCom = computeTested('NICComTest');
+const FinalTest = computeTested('FinalTest');
 
-  const finalPass = entry.FinalTest_Pass || 0;
-  const finalFail = entry.FinalTest_Fail || 0;
-  const finalRework = entry.FinalTest_Rework || 0;
-  const Completed = finalRework === 0 ? finalPass + finalFail : finalPass + finalFail - finalRework;
+const finalPass = entry.FinalTest_Pass || 0;
+const finalFail = entry.FinalTest_Fail || 0;
+const finalRework = rework.FinalTest_Rework || 0;
+const Completed = finalRework === 0 ? finalPass + finalFail : finalPass + finalFail - finalRework;
 
 const Rework =
-(entry.FunctionalTest_Rework || 0) +
-(entry.CalibrationTest_Rework || 0) +
-(entry.AccuracyTest_Rework || 0) +
-(entry.NICComTest_Rework || 0) +
-finalRework;
+(rework.FunctionalTest_Rework || 0) +
+(rework.CalibrationTest_Rework || 0) +
+(rework.AccuracyTest_Rework || 0) +
+(rework.NICComTest_Rework || 0) +
+(rework.FinalTest_Rework || 0);
 
-  return {
-date: firstDateStr || '',
+// ✅ NEW: Total Fail count
+const Fail =
+(entry.FunctionalTest_Fail || 0) +
+(entry.CalibrationTest_Fail || 0) +
+(entry.AccuracyTest_Fail || 0) +
+(entry.NICComTest_Fail || 0) +
+(entry.FinalTest_Fail || 0);
+
+return {
+date: dateKey || '',
 Functional,
 Calibration,
 Accuracy,
@@ -352,22 +372,25 @@ NICCom,
 FinalTest,
 Completed,
 Rework,
-FinalTest_Fail: entry.FinalTest_Fail || 0 // ✅ Add this line
+FinalTest_Fail: finalFail,
+Fail // ✅ Include total Fail
 };
-
 });
 };
 
-results.currentWeek = normalizeWeekRangeToDaily(results.currentWeekRaw);
-results.previousWeek = normalizeWeekRangeToDaily(results.previousWeekRaw);
 
+// Step 3: Normalize weekly results
+const currentWeek = normalizeWeekRangeToDaily(currentMainResult.recordset, currentReworkResult.recordset);
+const previousWeek = normalizeWeekRangeToDaily(previousMainResult.recordset, previousReworkResult.recordset);
+
+// Step 4: Send response
 return res.status(200).json({
 success: true,
 currentWeekStart: currentWeekStart.toISOString().split('T')[0],
 previousWeekStart: previousWeekStart.toISOString().split('T')[0],
 data: {
-  currentWeek: results.currentWeek,
-  previousWeek: results.previousWeek
+currentWeek,
+previousWeek
 }
 });
 
@@ -456,6 +479,7 @@ error: error.message
 });
 }
 };
+
 export const getDailyShiftData = async (req, res) => {
 try {
 const inputDate = req.body.dateTime;
