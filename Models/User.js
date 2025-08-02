@@ -502,7 +502,6 @@ error: error.message,
 };
 
 /* Daily Report & Preiodic Report*/
-
 export const getDailyHourlyData = async (req, res) => {
 try {
 const inputDate = req.body.dateTime;
