@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyToken } from '../middleware/middleware.js';
-import users, { gethourlyprogress, getpresentAndweekCount }  from '../controller/User.js';
+import users from '../controller/User.js';
 const userRouter = express.Router();
 
 userRouter.post('/addusers', users.addusers)
@@ -40,8 +40,17 @@ userRouter.post('/hourlydata', users.getDailyhour);
 userRouter.post('/month',users.getMonth)
 userRouter.post('/periodic',users.getperiodic);
 
+userRouter.post('/logout',users.logout)
+
 userRouter.get('/protected', verifyToken, (req, res) => {
 res.status(200).json({ message: 'Access granted', user: req.user });
+});
+
+userRouter.get('/me', verifyToken, (req, res) => {
+res.status(200).json({
+username: req.user.username,
+role: req.user.role
+});
 });
 
 

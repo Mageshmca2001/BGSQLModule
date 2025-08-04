@@ -1,16 +1,21 @@
 import jwt from 'jsonwebtoken';
-export const verifyToken = (req, res, next) => {
-const token = req.cookies?.token; // optional chaining for safety
+import { isBlacklisted } from '../Models/authtoken.js';
 
-if (!token) {
-return res.status(401).json({ message: 'No token, authorization denied' });
+const JWT_SECRET = process.env.JWT_SECRET;
+
+export const verifyToken = async (req, res, next) => {
+const token = req.cookies?.token;
+if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+if (await isBlacklisted(token)) {
+return res.status(403).json({ message: 'Token is blacklisted' });
 }
 
 try {
-const decoded = jwt.verify(token, process.env.JWT_SECRET);
-req.user = decoded; // attach user data to the request
+const decoded = jwt.verify(token, JWT_SECRET);
+req.user = decoded;
 next();
 } catch (err) {
-return res.status(401).json({ message: 'Token is not valid or expired' });
+return res.status(401).json({ message: 'Token expired or invalid' });
 }
 };

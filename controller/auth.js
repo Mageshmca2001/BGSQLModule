@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { findUserByUsername, createUser,verifyUserPassword} from '../Models/User.js';
+import { addToBlacklist } from "../Models/authtoken.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 const TOKEN_EXPIRATION = "2h";
@@ -39,6 +40,7 @@ return res.status(500).json({ message: "Database table 'Login' not found" });
 res.status(500).json({ message: "Error registering user", error: error.message });
 }
 };
+
 export const login = async (req, res) => {
 const { username, password } = req.body;
 
@@ -69,9 +71,9 @@ const token = jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_EXPIRATION });
 
 res.cookie("token", token, {
 httpOnly: true,
-secure: process.env.NODE_ENV === "production",
-maxAge: 3600000, // 1 hour
-sameSite: "strict",
+secure: false, // ✅ use false for localhost (true only in production)
+sameSite: "Lax", // ✅ Lax works better than Strict across ports
+maxAge: 2 * 60 * 60 * 1000 // 2 hours
 });
 
 res.status(200).json({
@@ -95,5 +97,26 @@ return res.status(500).json({ message: "Database table 'Login' not found" });
 res.status(500).json({ message: "Error logging in", error: error.message });
 }
 };
-const auth = { register ,login}
+
+export const logout = (req, res) => {
+const token = req.cookies?.token;
+
+if (token) {
+addToBlacklist(token); // 🛑 Disallow reuse
+}
+
+res.clearCookie('token', {
+httpOnly: true,
+sameSite: 'Strict',
+secure: true
+});
+
+res.clearCookie('userName');
+res.clearCookie('userRole');
+
+return res.status(200).json({ message: 'Logout successful' });
+};
+
+
+const auth = { register ,login,logout}
 export default auth;
