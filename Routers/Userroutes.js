@@ -40,11 +40,18 @@ userRouter.post('/hourlydata', users.getDailyhour);
 userRouter.post('/month',users.getMonth)
 userRouter.post('/periodic',users.getperiodic);
 
-userRouter.post('/logout',users.logout)
+
+//{*testjig parameter *}
+userRouter.get('/getlisttestjig',users.getlisttestjig);
+userRouter.post('/testjighourly', users.gethourlytestjig);
+
+
+userRouter.post('/logout',users.logout);
 
 userRouter.get('/protected', verifyToken, (req, res) => {
 res.status(200).json({ message: 'Access granted', user: req.user });
 });
+
 
 userRouter.get('/me', verifyToken, (req, res) => {
 res.status(200).json({

@@ -214,6 +214,8 @@ WHERE id = @id
 `);
 return result.recordset[0];
 };
+
+
 export const gettoday_yesterdayData = async (req, res) => {
 try {
 // Get today's and yesterday's dates
@@ -745,6 +747,61 @@ stack: error.stack,
 };
 
 
+export const getHourlyDataPerTestJig = async (req, res) => {
+try {
+const { jigNumberID, inputDate } = req.body;
+
+if (!jigNumberID || !inputDate) {
+return res.status(400).json({
+success: false,
+message: 'Both jigNumberID and inputDate are required.',
+});
+}
+
+const pool = await poolPromise;
+const result = await pool
+.request()
+.input('JigNumberID', jigNumberID)
+.input('InputDate', inputDate)
+.execute('SP_GetCountPerTestJigHourly_Func');
+
+const hourlyData = result.recordset || [];
+
+return res.status(200).json({
+success: true,
+data: hourlyData,
+});
+} catch (error) {
+console.error('❌ Error in getHourlyDataPerTestJig:', error);
+return res.status(500).json({
+success: false,
+message: 'Internal Server Error',
+error: error.message,
+});
+}
+};
+export const getTestJigList = async (req, res) => {
+try {
+const pool = await poolPromise;
+const result = await pool
+.request()
+.execute('SP_GetTestJigTestBenchDetails');
+
+const jigList = result.recordset || [];
+
+return res.status(200).json({
+success: true,
+data: jigList,
+});
+} catch (error) {
+console.error('❌ Error in getTestJigList:', error);
+return res.status(500).json({
+success: false,
+message: 'Internal Server Error',
+error: error.message,
+});
+}
+};
 
 
 
@@ -762,6 +819,8 @@ WHERE TABLE_TYPE = 'BASE TABLE'
 `);
 return result.recordset.map(row => row.TABLE_NAME); // ✅ Just return the data
 };
+
+
 // ✅ Get all rows from a selected table (safe version)
 export const getTableData = async (tableName, fromDate, toDate) => {
 const pool = await poolPromise;
