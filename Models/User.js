@@ -215,7 +215,7 @@ WHERE id = @id
 return result.recordset[0];
 };
 
-
+/* Daily Report & Preiodic Report*/
 export const gettoday_yesterdayData = async (req, res) => {
 try {
 // Get today's and yesterday's dates
@@ -502,8 +502,6 @@ error: error.message,
 });
 }
 };
-
-/* Daily Report & Preiodic Report*/
 export const getDailyHourlyData = async (req, res) => {
 try {
 const inputDate = req.body.dateTime;
@@ -746,7 +744,7 @@ stack: error.stack,
 }
 };
 
-
+/* TestJig Details*/
 export const getHourlyDataPerTestJig = async (req, res) => {
 try {
 const { jigNumberID, inputDate } = req.body;
@@ -840,8 +838,6 @@ error: error.message,
 });
 }
 };
-
-
 export const getTestJigList = async (req, res) => {
 try {
 const pool = await poolPromise;
@@ -864,14 +860,102 @@ error: error.message,
 });
 }
 };
+export const getTestBenchList = async (req, res) => {
+try {
+const pool = await poolPromise;
+const result = await pool
+.request()
+.execute('SP_GetTestJigTestBenchDetails');
+  // First SELECT (JigName)
+const benchList = result.recordsets[1] || []; // Second SELECT (BenchName)
+
+return res.status(200).json({
+success: true,
+benchList,
+});
+} catch (error) {
+console.error('❌ Error in getTestbenchList:', error);
+return res.status(500).json({
+success: false,
+message: 'Internal Server Error',
+error: error.message,
+});
+}
+};
 
 
 
+export const getTestBenchHourlyData = async (req, res) => {
+try {
+const { BenchID, inputDate } = req.body;
+
+if (!BenchID || !inputDate) {
+return res.status(400).json({
+success: false,
+message: 'BenchID and inputDate are required.',
+});
+}
+
+const pool = await poolPromise;
+
+const result = await pool.request()
+.input('BenchID', BenchID)
+.input('InputDate', inputDate)
+.execute('SP_GetCountPerTestBenchHourly_CalAcc'); // 👈 your single stored procedure
+
+const recordset = result.recordset || [];
+
+return res.status(200).json({
+success: true,
+data: recordset,
+});
+
+} catch (error) {
+console.error('❌ Error in getTestJigHourlyData:', error);
+return res.status(500).json({
+success: false,
+message: 'Server Error: Could not fetch data.',
+error: error.message,
+});
+}
+};
+
+export const getBenchDailyCount = async (req, res) => {
+try {
+const { BenchID, StartDate, EndDate } = req.body;
+
+if (!BenchID || !StartDate || !EndDate) {
+return res.status(400).json({
+success: false,
+message: 'Missing required parameters: BenchID, StartDate, and EndDate are required.'
+});
+}
+
+const pool = await poolPromise;
+
+const result = await pool
+.request()
+.input('BenchID', BenchID)
+.input('StartDate', StartDate)
+.input('EndDate', EndDate)
+.execute('SP_GetCountPerTestBenchDaily_CalAcc');
+
+return res.status(200).json({
+success: true,
+data: result.recordset,
+});
+} catch (error) {
+console.error('❌ Error in getBenchDailyCount:', error);
+return res.status(500).json({
+success: false,
+message: 'Server error while fetching bench daily count.',
+});
+}
+};
 
 
 
-
-
+/*TestCases*/
 // ✅ Get all table names from the database
 export const getAllTableNames = async () => {
 const pool = await poolPromise;
@@ -882,8 +966,6 @@ WHERE TABLE_TYPE = 'BASE TABLE'
 `);
 return result.recordset.map(row => row.TABLE_NAME); // ✅ Just return the data
 };
-
-
 // ✅ Get all rows from a selected table (safe version)
 export const getTableData = async (tableName, fromDate, toDate) => {
 const pool = await poolPromise;

@@ -1,5 +1,5 @@
 
-import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests,getHourlyDataAllTests,getAllTableNames,getTableData,getDailyShiftData,getDailyHourlyData,getMonthlyDataAllTests,getPeriodicDataAllTests,getHourlyDataPerTestJig,getDailyDataPerTestJig,getTestJigList} from '../Models/User.js'
+import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests,getHourlyDataAllTests,getAllTableNames,getTableData,getDailyShiftData,getDailyHourlyData,getMonthlyDataAllTests,getPeriodicDataAllTests,getHourlyDataPerTestJig,getDailyDataPerTestJig,getTestJigList,getTestBenchList,getBenchDailyCount,getTestBenchHourlyData} from '../Models/User.js'
 import { addToBlacklist} from '../Models/authtoken.js';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
@@ -410,6 +410,21 @@ error: err.message,
 }
 };
 
+export const getlisttestBench= async (req, res) => {
+try {
+await getTestBenchList(req, res);
+} catch (err) {
+console.error('❌ Error in getDailyhour:', err);
+res.status(500).json({
+success: false,
+message: 'Error retrieving counts',
+error: err.message,
+});
+}
+};
+
+
+
 export const getDailytestjig= async (req, res) => {
 try {
 await getDailyDataPerTestJig(req, res);
@@ -423,6 +438,33 @@ error: err.message,
 }
 };
 
-const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount,getpresentAndweekCount,gethourlyprogress,fetchTableList,fetchTableData,getshiftwise,getDailyhour,getMonth,getperiodic,logout,gethourlytestjig,getDailytestjig,getlisttestjig}; 
+export const getDailytestBench= async (req, res) => {
+try {
+await getBenchDailyCount(req, res);
+} catch (err) {
+console.error('❌ Error in getDailyhour:', err);
+res.status(500).json({
+success: false,
+message: 'Error retrieving counts',
+error: err.message,
+});
+}
+};
+
+
+export const gethourlytestBench= async (req, res) => {
+try {
+await getTestBenchHourlyData(req, res);
+} catch (err) {
+console.error('❌ Error in getDailyhour:', err);
+res.status(500).json({
+success: false,
+message: 'Error retrieving counts',
+error: err.message,
+});
+}
+};
+
+const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount,getpresentAndweekCount,gethourlyprogress,fetchTableList,fetchTableData,getshiftwise,getDailyhour,getMonth,getperiodic,logout,gethourlytestjig,getDailytestjig,getlisttestjig,getlisttestBench,getDailytestBench,gethourlytestBench}; 
 
 export default users;
