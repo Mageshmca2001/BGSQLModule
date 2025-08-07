@@ -43,6 +43,7 @@ userRouter.post('/periodic',users.getperiodic);
 
 //{*testjig parameter *}
 userRouter.get('/getlisttestjig',users.getlisttestjig);
+userRouter.post('/getDailytestjig',users.getDailytestjig)
 userRouter.post('/testjighourly', users.gethourlytestjig);
 
 

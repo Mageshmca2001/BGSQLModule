@@ -759,11 +759,25 @@ message: 'Both jigNumberID and inputDate are required.',
 }
 
 const pool = await poolPromise;
+
+// Determine which stored procedure to call
+let procedureName = '';
+if (jigNumberID.startsWith('FINTEST')) {
+procedureName = 'SP_GetCountPerTestJigHourly_Final';
+} else if (jigNumberID.startsWith('FUNCTEST')) {
+procedureName = 'SP_GetCountPerTestJigHourly_Func';
+} else {
+return res.status(400).json({
+success: false,
+message: 'Invalid JigNumberID format. It must start with FINTEST or FUNCTEST.',
+});
+}
+
 const result = await pool
 .request()
 .input('JigNumberID', jigNumberID)
 .input('InputDate', inputDate)
-.execute('SP_GetCountPerTestJigHourly_Func');
+.execute(procedureName);
 
 const hourlyData = result.recordset || [];
 
@@ -780,6 +794,54 @@ error: error.message,
 });
 }
 };
+export const getDailyDataPerTestJig = async (req, res) => {
+try {
+const { jigNumberID, fromDate, toDate } = req.body;
+
+if (!jigNumberID || !fromDate || !toDate) {
+return res.status(400).json({
+success: false,
+message: 'jigNumberID, fromDate, and toDate are required.',
+});
+}
+
+let procedureName = '';
+if (jigNumberID.startsWith('FINTEST')) {
+procedureName = 'SP_GetCountPerTestJigDaily_Final';
+} else if (jigNumberID.startsWith('FUNCTEST')) {
+procedureName = 'SP_GetCountPerTestJigDaily_Func';
+} else {
+return res.status(400).json({
+success: false,
+message: 'Invalid JigNumberID format. Must start with FINTEST or FUNCTEST.',
+});
+}
+
+const pool = await poolPromise;
+const result = await pool
+.request()
+.input('JigNumberID', jigNumberID)
+.input('StartDate', fromDate)
+.input('EndDate', toDate)
+.execute(procedureName);
+
+const dailyData = result.recordset || [];
+
+return res.status(200).json({
+success: true,
+data: dailyData,
+});
+} catch (error) {
+console.error('❌ Error in getDailyDataPerTestJig:', error);
+return res.status(500).json({
+success: false,
+message: 'Internal Server Error',
+error: error.message,
+});
+}
+};
+
+
 export const getTestJigList = async (req, res) => {
 try {
 const pool = await poolPromise;
@@ -802,6 +864,7 @@ error: error.message,
 });
 }
 };
+
 
 
 
