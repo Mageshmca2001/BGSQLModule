@@ -74,7 +74,6 @@ console.error("Delete user error:", err);
 res.status(500).json({ message: 'Error deleting user', error: err.message });
 }
 };
-
 export const login = async (req, res) => {
 const { username, password } = req.body;
 
@@ -134,7 +133,6 @@ console.error("Login error:", error);
 res.status(500).json({ message: "Error logging in", error: error.message });
 }
 };
-
 export const FunctionalSerialNumberget = async (req, res) => {
 try {
 const users = await FunctionalSerialNumber(); // users is an array of 4 recordsets
@@ -283,7 +281,6 @@ error: err.message
 });
 }
 };
-
 export const fetchTableList = async (req, res) => {
 try {
 const tables = await getAllTableNames();
@@ -311,7 +308,6 @@ error: `Failed to fetch data for table: ${tableName}`,
 });
 }
 };
-
 export const getshiftwise = async (req, res) => {
 try {
 await getDailyShiftData(req, res);
@@ -324,7 +320,6 @@ error: err.message,
 });
 }
 };
-
 export const getDailyhour = async (req, res) => {
 try {
 await getDailyHourlyData(req, res);
@@ -337,7 +332,6 @@ error: err.message,
 });
 }
 };
-
 export const getMonth= async (req, res) => {
 try {
 await getMonthlyDataAllTests(req, res);
@@ -350,7 +344,6 @@ error: err.message,
 });
 }
 };
-
 export const getperiodic= async (req, res) => {
 try {
 await getPeriodicDataAllTests(req, res);
@@ -363,7 +356,30 @@ error: err.message,
 });
 }
 };
-
+export const getlisttestjig= async (req, res) => {
+try {
+await getTestJigList(req, res);
+} catch (err) {
+console.error('❌ Error in getDailyhour:', err);
+res.status(500).json({
+success: false,
+message: 'Error retrieving counts',
+error: err.message,
+});
+}
+};
+export const getlisttestBench= async (req, res) => {
+try {
+await getTestBenchList(req, res);
+} catch (err) {
+console.error('❌ Error in getDailyhour:', err);
+res.status(500).json({
+success: false,
+message: 'Error retrieving counts',
+error: err.message,
+});
+}
+};
 export const logout = (req, res) => {
 const token = req.cookies?.token;
 
@@ -382,8 +398,6 @@ res.clearCookie('userRole');
 
 return res.status(200).json({ message: 'Logout successful' });
 };
-
-
 export const gethourlytestjig= async (req, res) => {
 try {
 await getHourlyDataPerTestJig(req, res);
@@ -396,35 +410,6 @@ error: err.message,
 });
 }
 };
-
-export const getlisttestjig= async (req, res) => {
-try {
-await getTestJigList(req, res);
-} catch (err) {
-console.error('❌ Error in getDailyhour:', err);
-res.status(500).json({
-success: false,
-message: 'Error retrieving counts',
-error: err.message,
-});
-}
-};
-
-export const getlisttestBench= async (req, res) => {
-try {
-await getTestBenchList(req, res);
-} catch (err) {
-console.error('❌ Error in getDailyhour:', err);
-res.status(500).json({
-success: false,
-message: 'Error retrieving counts',
-error: err.message,
-});
-}
-};
-
-
-
 export const getDailytestjig= async (req, res) => {
 try {
 await getDailyDataPerTestJig(req, res);
@@ -437,7 +422,6 @@ error: err.message,
 });
 }
 };
-
 export const getDailytestBench= async (req, res) => {
 try {
 await getBenchDailyCount(req, res);
@@ -450,8 +434,6 @@ error: err.message,
 });
 }
 };
-
-
 export const gethourlytestBench= async (req, res) => {
 try {
 await getTestBenchHourlyData(req, res);

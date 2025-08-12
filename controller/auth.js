@@ -122,6 +122,5 @@ res.clearCookie('userRole');
 
 return res.status(200).json({ message: 'Logout successful' });
 };
-
 const auth = { register ,login,logout}
 export default auth;

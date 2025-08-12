@@ -919,7 +919,6 @@ error: error.message,
 });
 }
 };
-
 export const getBenchDailyCount = async (req, res) => {
 try {
 const { BenchID, StartDate, EndDate } = req.body;
