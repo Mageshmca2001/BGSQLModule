@@ -86,7 +86,7 @@ try {
 const user = await findUserByUsername1(username);
 
 if (!user) {
-return res.status(401).json({ message: "Invalid credentials" });
+return res.status(401).json({ message: "Invalid Username" });
 }
 
 if (user.status !== 'Active') {
@@ -97,7 +97,7 @@ return res.status(403).json({ message: `Account is ${user.status}` });
 const isValid = await verifyUserPassword1(user, password);
 
 if (!isValid) {
-return res.status(401).json({ message: "Invalid credentials" });
+return res.status(401).json({ message: "Invalid Password" });
 }
 
 const payload = {
