@@ -760,14 +760,14 @@ const pool = await poolPromise;
 
 // Determine which stored procedure to call
 let procedureName = '';
-if (jigNumberID.startsWith('FINTEST')) {
+if (jigNumberID.startsWith('FINALTEST')) {
 procedureName = 'SP_GetCountPerTestJigHourly_Final';
 } else if (jigNumberID.startsWith('FUNCTEST')) {
 procedureName = 'SP_GetCountPerTestJigHourly_Func';
 } else {
 return res.status(400).json({
 success: false,
-message: 'Invalid JigNumberID format. It must start with FINTEST or FUNCTEST.',
+message: 'Invalid JigNumberID format. It must start with FINALTEST or FUNCTEST.',
 });
 }
 
@@ -884,7 +884,6 @@ error: error.message,
 };
 
 
-
 export const getTestBenchHourlyData = async (req, res) => {
 try {
 const { BenchID, inputDate } = req.body;
@@ -952,7 +951,31 @@ message: 'Server error while fetching bench daily count.',
 }
 };
 
+/* MeterSerialNumber */
+export const getAllTestDetailsByMeterSerialNo = async (meterSerialNo) => {
+try {
+const pool = await poolPromise;
 
+// Execute stored procedure
+const result = await pool
+.request()
+.input("MeterSerialNo", meterSerialNo) // Input parameter
+.execute("SP_GetByMeterSerialNo");
+
+// result.recordsets is an array of result sets from the stored procedure
+// Map them with descriptive keys for easier frontend usage
+return {
+functional: result.recordsets[0]?.[0] || null,
+calibration: result.recordsets[1]?.[0] || null,
+accuracy: result.recordsets[2]?.[0] || null,
+nic: result.recordsets[3]?.[0] || null,
+final: result.recordsets[4]?.[0] || null,
+};
+} catch (error) {
+console.error("Error fetching test details:", error);
+throw error;
+}
+};
 
 /*TestCases*/
 // ✅ Get all table names from the database

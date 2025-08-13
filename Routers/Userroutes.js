@@ -10,24 +10,20 @@ userRouter.delete('/deleteusers/:id', users.deleteusers);
 userRouter.post('/login', users.login);
 
 // {*/parameter*/}
-
 userRouter.get('/Functional',users.FunctionalSerialNumberget);
 userRouter.get('/Calibration', users.CalibrationSerialNumberget);
 userRouter.get('/Accuracy',users.AccuracySerialNumberget);
 userRouter.get('/NIC',users.NICSerialNumberget)
 
 // {*/TestJig*/}
-
 userRouter.get('/getTestjig', users.getTestjig); // you might already have this
 userRouter.post('/postTestjig', users.addTestjig);
 userRouter.put('/putTestjig', users.putTestJig);
 userRouter.delete('/deleteTestjig/:id', users.deleteTestJig);
 
 //{*graph Pie Chat, Grid cols}
-
 userRouter.get('/count', users.getTodayAndYesterdayCount);
 userRouter.get('/week',users.getpresentAndweekCount)
-
 userRouter.get('/hourly',users.gethourlyprogress);
 
 //{*Testing}
@@ -46,10 +42,11 @@ userRouter.get('/getlisttestjig',users.getlisttestjig);
 userRouter.get('/gettestBench',users.getlisttestBench)
 userRouter.post('/getDailytestjig',users.getDailytestjig)
 userRouter.post('/testjighourly', users.gethourlytestjig);
-
-
 userRouter.post('/getDailytestbench',users.getDailytestBench);
-userRouter.post('/gethourlyBench',users.gethourlytestBench)
+userRouter.post('/gethourlyBench',users.gethourlytestBench);
+
+//{*MeterSerial Report *}
+userRouter.post('/Meterserial',users.MeterSerialNo);
 
 userRouter.post('/logout',users.logout);
 
@@ -64,6 +61,4 @@ username: req.user.username,
 role: req.user.role
 });
 });
-
-
 export default userRouter;

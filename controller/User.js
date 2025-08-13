@@ -1,5 +1,5 @@
 
-import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests,getHourlyDataAllTests,getAllTableNames,getTableData,getDailyShiftData,getDailyHourlyData,getMonthlyDataAllTests,getPeriodicDataAllTests,getHourlyDataPerTestJig,getDailyDataPerTestJig,getTestJigList,getTestBenchList,getBenchDailyCount,getTestBenchHourlyData} from '../Models/User.js'
+import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests,getHourlyDataAllTests,getAllTableNames,getTableData,getDailyShiftData,getDailyHourlyData,getMonthlyDataAllTests,getPeriodicDataAllTests,getHourlyDataPerTestJig,getDailyDataPerTestJig,getTestJigList,getTestBenchList,getBenchDailyCount,getTestBenchHourlyData,getAllTestDetailsByMeterSerialNo} from '../Models/User.js'
 import { addToBlacklist} from '../Models/authtoken.js';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
@@ -447,6 +447,29 @@ error: err.message,
 }
 };
 
-const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount,getpresentAndweekCount,gethourlyprogress,fetchTableList,fetchTableData,getshiftwise,getDailyhour,getMonth,getperiodic,logout,gethourlytestjig,getDailytestjig,getlisttestjig,getlisttestBench,getDailytestBench,gethourlytestBench}; 
+/* MeterSerialReport */
+export const MeterSerialNo = async (req, res) => {
+try {
+const { serial } = req.body; // coming from POST body
+
+if (!serial) {
+return res.status(400).json({ success: false, message: "Serial number is required" });
+}
+
+// Call your model function
+const testDetails = await getAllTestDetailsByMeterSerialNo(serial);
+
+if (!testDetails || Object.values(testDetails).every(v => v === null)) {
+return res.status(404).json({ success: false, message: "No test details found" });
+}
+
+return res.status(200).json({ success: true, data: testDetails });
+} catch (error) {
+console.error("Error in MeterSerialNo controller:", error);
+return res.status(500).json({ success: false, message: "Server error" });
+}
+};
+
+const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount,getpresentAndweekCount,gethourlyprogress,fetchTableList,fetchTableData,getshiftwise,getDailyhour,getMonth,getperiodic,logout,gethourlytestjig,getDailytestjig,getlisttestjig,getlisttestBench,getDailytestBench,gethourlytestBench,MeterSerialNo}; 
 
 export default users;
