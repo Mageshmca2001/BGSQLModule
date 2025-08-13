@@ -327,17 +327,16 @@ const rework = entry[`${test}_Rework`] || 0;
 return rework === 0 ? pass + fail : pass + fail - rework;
 };
 
-const Functional = computeTested('FunctionalTest');
-const Calibration = computeTested('CalibrationTest');
-const Accuracy = computeTested('AccuracyTest');
-const NICCom = computeTested('NICComTest');
-const FinalTest = computeTested('FinalTest');
+  const Functional = computeTested('FunctionalTest');
+  const Calibration = computeTested('CalibrationTest');
+  const Accuracy = computeTested('AccuracyTest');
+  const NICCom = computeTested('NICComTest');
+  const FinalTest = computeTested('FinalTest');
 
-const finalPass = entry.FinalTest_Pass || 0;
-const finalRework = entry.FinalTest_Rework || 0;
-
-// ✅ Completed now counts only FinalTest_Pass
-const Completed = finalPass;
+  const finalPass = entry.FinalTest_Pass || 0;
+  const finalFail = entry.FinalTest_Fail || 0;
+  const finalRework = entry.FinalTest_Rework || 0;
+  const Completed = finalRework === 0 ? finalPass + finalFail : finalPass + finalFail - finalRework;
 
 const Rework =
 (entry.FunctionalTest_Rework || 0) +
@@ -346,7 +345,7 @@ const Rework =
 (entry.NICComTest_Rework || 0) +
 finalRework;
 
-return {
+  return {
 date: firstDateStr || '',
 Functional,
 Calibration,
@@ -355,11 +354,11 @@ NICCom,
 FinalTest,
 Completed,
 Rework,
-FinalTest_Fail: entry.FinalTest_Fail || 0
-};
-});
+FinalTest_Fail: entry.FinalTest_Fail || 0 // ✅ Add this line
 };
 
+});
+};
 
 results.currentWeek = normalizeWeekRangeToDaily(results.currentWeekRaw);
 results.previousWeek = normalizeWeekRangeToDaily(results.previousWeekRaw);
@@ -383,7 +382,6 @@ error: error.message
 });
 }
 };
-
 export const getHourlyDataAllTests = async (req, res) => {
 try {
 const inputDate = req.body.dateTime ? new Date(req.body.dateTime) : new Date();
@@ -638,7 +636,6 @@ Calibration: computeTested('CalibrationTest'),
 Accuracy: computeTested('AccuracyTest'),
 NICCom: computeTested('NICComTest'),
 FinalTest: computeTested('FinalTest'),
-Passed:(entry.FinalTest_Pass || 0),
 Completed: (entry.FinalTest_Pass || 0) + (entry.FinalTest_Fail || 0) - (entry.FinalTest_Rework || 0),
 Rework: (entry.FunctionalTest_Rework || 0) + (entry.CalibrationTest_Rework || 0) +
 (entry.AccuracyTest_Rework || 0) + (entry.NICComTest_Rework || 0) +
@@ -724,7 +721,6 @@ Completed:
 (entry.FinalTest_Pass || 0) +
 (entry.FinalTest_Fail || 0) -
 (entry.FinalTest_Rework || 0),
-Passed:(entry.FinalTest_Pass || 0),
 Rework:
 (entry.FunctionalTest_Rework || 0) +
 (entry.CalibrationTest_Rework || 0) +
