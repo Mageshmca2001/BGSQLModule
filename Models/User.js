@@ -216,50 +216,47 @@ return result.recordset[0];
 };
 
 /* Daily Report & Preiodic Report*/
+// server/controllers/dashboardController.js
 export const gettoday_yesterdayData = async (req, res) => {
 try {
-// Get today's and yesterday's dates
 const today = new Date();
 const yesterday = new Date(today);
 yesterday.setDate(today.getDate() - 1);
 
-// Format dates as 'YYYY-MM-DD'
 const formatDate = (date) => date.toISOString().split('T')[0];
 const todayStr = formatDate(today);
 const yesterdayStr = formatDate(yesterday);
 
-// List of stored procedures to call
 const procedures = [
-{ name: 'ShiftWiseSummary', sp: 'SP_GetCountPerDay_DashboardResultDetails' }, // new shift-wise SP
+{ name: 'ShiftWiseSummary', sp: 'SP_GetCountPerDay_DashboardResultDetails' }
 ];
 
 const pool = await poolPromise;
-
-// Final structure
-const results = {
-today: {},
-yesterday: {}
-};
+const results = { today: {}, yesterday: {} };
 
 for (const proc of procedures) {
-// === Get today's data
 const todayResult = await pool
 .request()
 .input('InputDateTime', todayStr)
 .execute(proc.sp);
 
-// === Get yesterday's data
 const yesterdayResult = await pool
 .request()
 .input('InputDateTime', yesterdayStr)
 .execute(proc.sp);
 
-// Store results by name
-results.today[proc.name] = todayResult.recordset || [];
-results.yesterday[proc.name] = yesterdayResult.recordset || [];
+// Stored procedure returns two recordsets:
+// 0 -> shift-wise, 1 -> only-pass counts
+results.today[proc.name] = {
+shiftWise: todayResult.recordsets[0] || [],
+onlyPass: todayResult.recordsets[1]?.[0] || {}
+};
+results.yesterday[proc.name] = {
+shiftWise: yesterdayResult.recordsets[0] || [],
+onlyPass: yesterdayResult.recordsets[1]?.[0] || {}
+};
 }
 
-// Return final response
 return res.status(200).json({
 success: true,
 today: todayStr,
@@ -276,6 +273,7 @@ error: error.message
 });
 }
 };
+
 export const getWeeklyDataAllTests = async (req, res) => {
 try {
 const today = new Date();
@@ -1034,7 +1032,6 @@ console.error(`❌ Failed to fetch table: ${sanitized}`, err);
 throw err;
 }
 };
-
 
 
 
