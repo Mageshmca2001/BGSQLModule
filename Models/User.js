@@ -273,7 +273,6 @@ error: error.message
 });
 }
 };
-
 export const getWeeklyDataAllTests = async (req, res) => {
 try {
 const today = new Date();
