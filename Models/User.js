@@ -216,7 +216,6 @@ return result.recordset[0];
 };
 
 /* Daily Report & Preiodic Report*/
-// server/controllers/dashboardController.js
 export const gettoday_yesterdayData = async (req, res) => {
 try {
 const today = new Date();
@@ -298,24 +297,40 @@ previousWeek: []
 // === Current Week Data
 const currentResult = await pool
 .request()
-.input('InputDateTime', currentWeekStart)
-.execute('SP_GetCountPerWeek_DashboardResultDetails');
+.input("InputDateTime", currentWeekStart)
+.execute("SP_GetCountPerWeek_DashboardResultDetails");
 
-results.currentWeekRaw = currentResult.recordset || [];
+// resultsets[0] = summary | resultsets[1] = onlypass
+results.currentWeekRaw = currentResult.recordsets;
 
 // === Previous Week Data
 const previousResult = await pool
 .request()
-.input('InputDateTime', previousWeekStart)
-.execute('SP_GetCountPerWeek_DashboardResultDetails');
+.input("InputDateTime", previousWeekStart)
+.execute("SP_GetCountPerWeek_DashboardResultDetails");
 
-results.previousWeekRaw = previousResult.recordset || [];
+results.previousWeekRaw = previousResult.recordsets;
 
-// === Normalize Weekly Data
-const normalizeWeekRangeToDaily = (rawWeekData = []) => {
-return rawWeekData.map((entry) => {
-// Convert RecordDate "dd-MM-yyyy to dd-MM-yyyy" → take first date and format as dd.MM.yyyy
-const firstDateStr = entry.RecordDate?.split('to')[0]?.trim()?.replace(/-/g, '.');
+// === Normalize Weekly Data (merge both sets)
+const normalizeWeekRangeToDaily = (rawSets = []) => {
+const [summarySet = [], onlyPassSet = []] = rawSets;
+
+// Map OnlyPassSet by its starting date
+const onlyPassMap = {};
+for (const op of onlyPassSet) {
+const firstDateStr = op.OnlyPassDate?.split("to")[0]?.trim();
+if (firstDateStr) {
+onlyPassMap[firstDateStr] = op;
+}
+}
+
+return summarySet.map((entry) => {
+// First date of the summary record
+const firstDateStr = entry.RecordDate?.split("to")[0]?.trim();
+const firstDateStrDot = firstDateStr?.replace(/-/g, "."); // your JSON date format
+
+// Find matching onlyPass row by date
+const onlyPass = onlyPassMap[firstDateStr] || {};
 
 const computeTested = (test) => {
 const pass = entry[`${test}_Pass`] || 0;
@@ -324,16 +339,17 @@ const rework = entry[`${test}_Rework`] || 0;
 return rework === 0 ? pass + fail : pass + fail - rework;
 };
 
-  const Functional = computeTested('FunctionalTest');
-  const Calibration = computeTested('CalibrationTest');
-  const Accuracy = computeTested('AccuracyTest');
-  const NICCom = computeTested('NICComTest');
-  const FinalTest = computeTested('FinalTest');
+const Functional = computeTested("FunctionalTest");
+const Calibration = computeTested("CalibrationTest");
+const Accuracy = computeTested("AccuracyTest");
+const NICCom = computeTested("NICComTest");
+const FinalTest = computeTested("FinalTest");
 
-  const finalPass = entry.FinalTest_Pass || 0;
-  const finalFail = entry.FinalTest_Fail || 0;
-  const finalRework = entry.FinalTest_Rework || 0;
-  const Completed = finalRework === 0 ? finalPass + finalFail : finalPass + finalFail - finalRework;
+const finalPass = entry.FinalTest_Pass || 0;
+const finalFail = entry.FinalTest_Fail || 0;
+const finalRework = entry.FinalTest_Rework || 0;
+const Completed =
+finalRework === 0 ? finalPass + finalFail : finalPass + finalFail - finalRework;
 
 const Rework =
 (entry.FunctionalTest_Rework || 0) +
@@ -342,8 +358,10 @@ const Rework =
 (entry.NICComTest_Rework || 0) +
 finalRework;
 
-  return {
-date: firstDateStr || '',
+return {
+date: firstDateStrDot || "",
+
+// Normal counts
 Functional,
 Calibration,
 Accuracy,
@@ -351,34 +369,41 @@ NICCom,
 FinalTest,
 Completed,
 Rework,
-FinalTest_Fail: entry.FinalTest_Fail || 0 // ✅ Add this line
-};
+FinalTest_Fail: entry.FinalTest_Fail || 0,
 
+// ✅ Correctly aligned OnlyPass counts
+Functional_OnlyPass: onlyPass.FunctionalTest_OnlyPass || 0,
+Calibration_OnlyPass: onlyPass.CalibrationTest_OnlyPass || 0,
+Accuracy_OnlyPass: onlyPass.AccuracyTest_OnlyPass || 0,
+NICCom_OnlyPass: onlyPass.NICComTest_OnlyPass || 0,
+FinalTest_OnlyPass: onlyPass.FinalTest_OnlyPass || 0,
+};
 });
 };
+
 
 results.currentWeek = normalizeWeekRangeToDaily(results.currentWeekRaw);
 results.previousWeek = normalizeWeekRangeToDaily(results.previousWeekRaw);
 
 return res.status(200).json({
 success: true,
-currentWeekStart: currentWeekStart.toISOString().split('T')[0],
-previousWeekStart: previousWeekStart.toISOString().split('T')[0],
+currentWeekStart: currentWeekStart.toISOString().split("T")[0],
+previousWeekStart: previousWeekStart.toISOString().split("T")[0],
 data: {
-  currentWeek: results.currentWeek,
-  previousWeek: results.previousWeek
+currentWeek: results.currentWeek,
+previousWeek: results.previousWeek
 }
 });
-
 } catch (error) {
-console.error('Error in getWeeklyDataAllTests:', error);
+console.error("Error in getWeeklyDataAllTests:", error);
 return res.status(500).json({
 success: false,
-message: 'Error retrieving weekly data from stored procedure',
+message: "Error retrieving weekly data from stored procedure",
 error: error.message
 });
 }
 };
+
 export const getHourlyDataAllTests = async (req, res) => {
 try {
 const inputDate = req.body.dateTime ? new Date(req.body.dateTime) : new Date();
