@@ -1,5 +1,5 @@
 
-import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,FunctionalSerialNumber,CalibrationSerialNumber,AccuracySerialNumber,NICSerialNumber,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests,getHourlyDataAllTests,getAllTableNames,getTableData,getDailyShiftData,getDailyHourlyData,getMonthlyDataAllTests,getPeriodicDataAllTests,getHourlyDataPerTestJig,getDailyDataPerTestJig,getTestJigList,getTestBenchList,getBenchDailyCount,getTestBenchHourlyData,getAllTestDetailsByMeterSerialNo} from '../Models/User.js'
+import {insertUser,fetchAllUsers,updateUser,deleteUser,findUserByUsername1,verifyUserPassword1,fetchTest,CreateTest,UpdateTest,deleteTest,gettoday_yesterdayData,getWeeklyDataAllTests,getHourlyDataAllTests,getAllTableNames,getTableData,getDailyShiftData,getDailyHourlyData,getMonthlyDataAllTests,getPeriodicDataAllTests,getHourlyDataPerTestJig,getDailyDataPerTestJig,getTestJigList,getTestBenchList,getBenchDailyCount,getTestBenchHourlyData,getAllTestDetailsByMeterSerialNo} from '../Models/User.js'
 import { addToBlacklist} from '../Models/authtoken.js';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
@@ -133,54 +133,8 @@ console.error("Login error:", error);
 res.status(500).json({ message: "Error logging in", error: error.message });
 }
 };
-export const FunctionalSerialNumberget = async (req, res) => {
-try {
-const users = await FunctionalSerialNumber(); // users is an array of 4 recordsets
 
 
-res.status(200).json({ users
-});
-} catch (err) {
-console.error("Get users error:", err);
-res.status(500).json({ message: 'Error retrieving users', error: err.message });
-}
-};
-export const CalibrationSerialNumberget = async (req, res) => {
-try {
-const users = await CalibrationSerialNumber(); // users is an array of 4 recordsets
-
-
-res.status(200).json({ users
-});
-} catch (err) {
-console.error("Get users error:", err);
-res.status(500).json({ message: 'Error retrieving users', error: err.message });
-}
-};
-export const AccuracySerialNumberget = async (req, res) => {
-try {
-const users = await AccuracySerialNumber(); // users is an array of 4 recordsets
-
-
-res.status(200).json({ users
-});
-} catch (err) {
-console.error("Get users error:", err);
-res.status(500).json({ message: 'Error retrieving users', error: err.message });
-}
-};
-export const NICSerialNumberget = async (req, res) => {
-try {
-const users = await NICSerialNumber(); // users is an array of 4 recordsets
-
-
-res.status(200).json({ users
-});
-} catch (err) {
-console.error("Get users error:", err);
-res.status(500).json({ message: 'Error retrieving users', error: err.message });
-}
-};
 export const getTestjig =async (req, res) =>{
 try {
 const users = await fetchTest(); // Replace with your actual DB query method
@@ -470,6 +424,6 @@ return res.status(500).json({ success: false, message: "Server error" });
 }
 };
 
-const users = {addusers, getusers , putusers, deleteusers, login, FunctionalSerialNumberget,CalibrationSerialNumberget,AccuracySerialNumberget,NICSerialNumberget,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount,getpresentAndweekCount,gethourlyprogress,fetchTableList,fetchTableData,getshiftwise,getDailyhour,getMonth,getperiodic,logout,gethourlytestjig,getDailytestjig,getlisttestjig,getlisttestBench,getDailytestBench,gethourlytestBench,MeterSerialNo}; 
+const users = {addusers, getusers , putusers, deleteusers, login,getTestjig,addTestjig,putTestJig,deleteTestJig,getTodayAndYesterdayCount,getpresentAndweekCount,gethourlyprogress,fetchTableList,fetchTableData,getshiftwise,getDailyhour,getMonth,getperiodic,logout,gethourlytestjig,getDailytestjig,getlisttestjig,getlisttestBench,getDailytestBench,gethourlytestBench,MeterSerialNo}; 
 
 export default users;

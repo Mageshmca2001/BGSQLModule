@@ -9,11 +9,6 @@ userRouter.put('/putusers', users.putusers);
 userRouter.delete('/deleteusers/:id', users.deleteusers);
 userRouter.post('/login', users.login);
 
-// {*/parameter*/}
-userRouter.get('/Functional',users.FunctionalSerialNumberget);
-userRouter.get('/Calibration', users.CalibrationSerialNumberget);
-userRouter.get('/Accuracy',users.AccuracySerialNumberget);
-userRouter.get('/NIC',users.NICSerialNumberget)
 
 // {*/TestJig*/}
 userRouter.get('/getTestjig', users.getTestjig); // you might already have this

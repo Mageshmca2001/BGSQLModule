@@ -115,40 +115,7 @@ return result.recordset[0];
 export const verifyUserPassword1 = (user, plainPassword) => {
 return user.password === plainPassword;
 };
-export const FunctionalSerialNumber = async () => {
-const pool = await poolPromise;
-const result = await pool
-.request()
-.query('SELECT Top 100 * FROM FunctionalTestDetails');
-return result.recordset; // Return all records
-};
-export const CalibrationSerialNumber = async () => {
-const pool = await poolPromise;
-const result = await pool
-.request()
-.query('SELECT Top 100 *  FROM CalibrationTest');
 
-AccuracySerialNumber
-return result.recordset; // Return all records
-};
-export const AccuracySerialNumber = async () => {
-const pool = await poolPromise;
-const result = await pool
-.request()
-.query('SELECT Top 100 * FROM AccuracyTest');
-
-
-return result.recordset; // Return all records
-};
-export const NICSerialNumber = async () => {
-const pool = await poolPromise;
-const result = await pool
-.request()
-.query('SELECT Top 100 * FROM NICComTest');
-
-
-return result.recordset; // Return all records
-};
 export const fetchTest = async () => {
 const pool = await poolPromise;
 const result = await pool
@@ -345,18 +312,15 @@ const Accuracy = computeTested("AccuracyTest");
 const NICCom = computeTested("NICComTest");
 const FinalTest = computeTested("FinalTest");
 
-const finalPass = entry.FinalTest_Pass || 0;
-const finalFail = entry.FinalTest_Fail || 0;
-const finalRework = entry.FinalTest_Rework || 0;
-const Completed =
-finalRework === 0 ? finalPass + finalFail : finalPass + finalFail - finalRework;
+
+const Completed = (entry.FinalTest_Pass);
 
 const Rework =
 (entry.FunctionalTest_Rework || 0) +
 (entry.CalibrationTest_Rework || 0) +
 (entry.AccuracyTest_Rework || 0) +
 (entry.NICComTest_Rework || 0) +
-finalRework;
+(entry.FinalTest_Rework || 0)
 
 return {
 date: firstDateStrDot || "",
@@ -369,7 +333,20 @@ NICCom,
 FinalTest,
 Completed,
 Rework,
-FinalTest_Fail: entry.FinalTest_Fail || 0,
+
+Pass:
+(entry.FunctionalTest_Pass || 0) +
+(entry.CalibrationTest_Pass || 0) +
+(entry.AccuracyTest_Pass || 0) +
+(entry.NICComTest_Pass || 0) +
+(entry.FinalTest_Pass || 0),
+// ✅ Cumulative Fail count from all test types
+Fail:
+(entry.FunctionalTest_Fail || 0) +
+(entry.CalibrationTest_Fail || 0) +
+(entry.AccuracyTest_Fail || 0) +
+(entry.NICComTest_Fail || 0) +
+(entry.FinalTest_Fail || 0),
 
 // ✅ Correctly aligned OnlyPass counts
 Functional_OnlyPass: onlyPass.FunctionalTest_OnlyPass || 0,
@@ -403,7 +380,6 @@ error: error.message
 });
 }
 };
-
 export const getHourlyDataAllTests = async (req, res) => {
 try {
 const inputDate = req.body.dateTime ? new Date(req.body.dateTime) : new Date();
@@ -480,6 +456,7 @@ error: error.message
 });
 }
 };
+
 export const getDailyShiftData = async (req, res) => {
 try {
 const inputDate = req.body.dateTime;
@@ -508,11 +485,17 @@ const result = await pool
 .input('InputDateTime', formattedDate)
 .execute('SP_GetCountPerDay_DashboardResultDetails');
 
+const [summarySet = [], onlyPassSet = []] = result.recordsets || [];
+const onlyPassRow = onlyPassSet[0] || {};
+
 return res.status(200).json({
 success: true,
 date: formattedDate,
 data: {
-ShiftWiseSummary: result.recordset || [],
+ShiftWiseSummary: {
+summary: summarySet,
+onlyPass: onlyPassRow, // ✅ This contains FunctionalTest_OnlyPass, etc.
+},
 },
 });
 } catch (error) {
@@ -524,6 +507,8 @@ error: error.message,
 });
 }
 };
+
+
 export const getDailyHourlyData = async (req, res) => {
 try {
 const inputDate = req.body.dateTime;
@@ -616,6 +601,7 @@ error: error.message,
 });
 }
 };
+
 export const getMonthlyDataAllTests = async (req, res) => {
 try {
 const { monthName, year } = req.body;   // ✅ use req.body for POST
@@ -904,8 +890,6 @@ error: error.message,
 });
 }
 };
-
-
 export const getTestBenchHourlyData = async (req, res) => {
 try {
 const { BenchID, inputDate } = req.body;
@@ -922,7 +906,7 @@ const pool = await poolPromise;
 const result = await pool.request()
 .input('BenchID', BenchID)
 .input('InputDate', inputDate)
-.execute('SP_GetCountPerTestBenchHourly_CalAcc'); // 👈 your single stored procedure
+.execute('SP_GetCountPerTestBenchHourly_CalAccNic'); // 👈 your single stored procedure
 
 const recordset = result.recordset || [];
 
@@ -958,7 +942,7 @@ const result = await pool
 .input('BenchID', BenchID)
 .input('StartDate', StartDate)
 .input('EndDate', EndDate)
-.execute('SP_GetCountPerTestBenchDaily_CalAcc');
+.execute('SP_GetCountPerTestBenchDaily_CalAccNic');
 
 return res.status(200).json({
 success: true,
